@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "MyGoldenPath",
+    "slug": "mygoldenpath",
+    "scheme": "mygoldenpath",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      "expo-notifications"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.mygoldenpath.app"
+    },
+    "android": {
+      "package": "com.mygoldenpath.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
