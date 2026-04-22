@@ -1,14 +1,20 @@
 import 'react-native-reanimated';
-import { Stack, Redirect } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { useAppStore, useProfileStore } from '@/stores';
 
 export default function RootLayout() {
   const onboardingCompleted = useAppStore((s) => s.onboardingCompleted);
   const activeProfileId = useProfileStore((s) => s.activeProfileId);
+  const router = useRouter();
+  const navigationState = useRootNavigationState();
 
-  if (!onboardingCompleted || !activeProfileId) {
-    return <Redirect href="/(onboarding)/welcome" />;
-  }
+  useEffect(() => {
+    if (!navigationState?.key) return;
+    if (!onboardingCompleted || !activeProfileId) {
+      router.replace('/(onboarding)/welcome');
+    }
+  }, [navigationState?.key, onboardingCompleted, activeProfileId]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
