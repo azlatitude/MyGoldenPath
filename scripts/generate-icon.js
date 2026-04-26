@@ -1,408 +1,235 @@
 const { createCanvas } = require('canvas');
 const fs = require('fs');
-
 const SIZE = 1024;
-const canvas = createCanvas(SIZE, SIZE);
-const ctx = canvas.getContext('2d');
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+}
+
+function drawStar4(ctx, x, y, outerR, innerR) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI / 4) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? outerR : innerR;
+    ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+  }
   ctx.closePath();
 }
 
-function drawCrystalPrism(ctx, x, y, length, width, angle) {
+// Draw a hex prism crystal. Rotates around the BOTTOM TIP so all tips converge.
+// pivotX, pivotY: the bottom tip position (convergence point)
+// heightScale: optional, multiplier for height independent of width (default 1.0)
+function drawHexCrystal(ctx, pivotX, pivotY, rotation, scale, colors, heightScale) {
   ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(angle);
-  const tipLen = length * 0.28;
-  const halfW = width / 2;
-  ctx.beginPath();
-  ctx.moveTo(0, -length / 2);
-  ctx.lineTo(-halfW, -length / 2 + tipLen);
-  ctx.lineTo(-halfW, length / 2 - tipLen);
-  ctx.lineTo(0, length / 2);
-  ctx.lineTo(halfW, length / 2 - tipLen);
-  ctx.lineTo(halfW, -length / 2 + tipLen);
-  ctx.closePath();
-  ctx.restore();
-}
+  const hScale = (heightScale || 1.0) * scale;
 
-// === BACKGROUND ===
-const bg = ctx.createLinearGradient(0, 0, SIZE, SIZE);
-bg.addColorStop(0, '#0F1B4D');
-bg.addColorStop(0.4, '#1E3A8A');
-bg.addColorStop(0.7, '#1D4ED8');
-bg.addColorStop(1, '#2563EB');
-roundRect(ctx, 0, 0, SIZE, SIZE, 180);
-ctx.fillStyle = bg;
-ctx.fill();
+  const totalH = 620 * hScale;
+  const bodyH = 260 * hScale;
+  const tipH = 180 * hScale;
+  const faceW = 130 * scale;
+  const sideW = 90 * scale;
 
-// Warm center glow
-const warmGlow = ctx.createRadialGradient(SIZE/2, SIZE/2 + 30, 0, SIZE/2, SIZE/2 + 30, SIZE * 0.5);
-warmGlow.addColorStop(0, 'rgba(255, 200, 50, 0.18)');
-warmGlow.addColorStop(0.4, 'rgba(255, 180, 30, 0.08)');
-warmGlow.addColorStop(1, 'rgba(255, 180, 30, 0)');
-ctx.fillStyle = warmGlow;
-ctx.fill();
+  // Rotate around the bottom tip
+  ctx.translate(pivotX, pivotY);
+  ctx.rotate(rotation);
 
-// === GOLDEN CRYSTAL (闪灵水晶 — 3/4 view showing 3 faces of hex prism) ===
-const cx = SIZE / 2;
-const cy = SIZE / 2 + 10;
-const totalH = 620;
-const bodyH = 260;
-const tipH = 180;
-const topTip = cy - totalH / 2;
-const topBody = topTip + tipH;
-const botBody = topBody + bodyH;
-const botTip = botBody + tipH;
+  // Positions relative to bottom tip at origin (0,0)
+  const bTip = 0;
+  const bBody = -tipH;
+  const tBody = bBody - bodyH;
+  const tTip = tBody - tipH;
+  const LO = -faceW/2 - sideW;
+  const L = -faceW/2;
+  const R = faceW/2;
+  const RO = faceW/2 + sideW;
 
-// 3 visible faces of hexagonal prism from 3/4 view
-const faceW = 130;
-const sideW = 90;
-const bLeftOuter  = cx - faceW/2 - sideW;
-const bLeft       = cx - faceW/2;
-const bRight      = cx + faceW/2;
-const bRightOuter = cx + faceW/2 + sideW;
-
-// Outer glow
-const gemGlow = ctx.createRadialGradient(cx, cy, 50, cx, cy, 400);
-gemGlow.addColorStop(0, 'rgba(255, 215, 0, 0.4)');
-gemGlow.addColorStop(0.5, 'rgba(255, 180, 0, 0.12)');
-gemGlow.addColorStop(1, 'rgba(255, 180, 0, 0)');
-ctx.fillStyle = gemGlow;
-roundRect(ctx, 0, 0, SIZE, SIZE, 180);
-ctx.fill();
-
-// LEFT SIDE FACE (darkest)
-ctx.beginPath();
-ctx.moveTo(cx, topTip);
-ctx.lineTo(bLeftOuter, topBody);
-ctx.lineTo(bLeftOuter, botBody);
-ctx.lineTo(cx, botTip);
-ctx.lineTo(bLeft, botBody);
-ctx.lineTo(bLeft, topBody);
-ctx.closePath();
-const leftGrad = ctx.createLinearGradient(bLeftOuter, topBody, bLeft, botBody);
-leftGrad.addColorStop(0, '#8B6914');
-leftGrad.addColorStop(0.3, '#A07818');
-leftGrad.addColorStop(0.6, '#9A7216');
-leftGrad.addColorStop(1, '#7A5A10');
-ctx.fillStyle = leftGrad;
-ctx.fill();
-
-// CENTER FRONT FACE (medium)
-ctx.beginPath();
-ctx.moveTo(cx, topTip);
-ctx.lineTo(bLeft, topBody);
-ctx.lineTo(bLeft, botBody);
-ctx.lineTo(cx, botTip);
-ctx.lineTo(bRight, botBody);
-ctx.lineTo(bRight, topBody);
-ctx.closePath();
-const cGrad = ctx.createLinearGradient(bLeft, topTip, bRight, botTip);
-cGrad.addColorStop(0, '#FFE680');
-cGrad.addColorStop(0.2, '#FFD700');
-cGrad.addColorStop(0.45, '#FFECB3');
-cGrad.addColorStop(0.55, '#FFD700');
-cGrad.addColorStop(0.8, '#DAA520');
-cGrad.addColorStop(1, '#C8960E');
-ctx.fillStyle = cGrad;
-ctx.fill();
-
-// RIGHT SIDE FACE (brightest)
-ctx.beginPath();
-ctx.moveTo(cx, topTip);
-ctx.lineTo(bRightOuter, topBody);
-ctx.lineTo(bRightOuter, botBody);
-ctx.lineTo(cx, botTip);
-ctx.lineTo(bRight, botBody);
-ctx.lineTo(bRight, topBody);
-ctx.closePath();
-const rGrad = ctx.createLinearGradient(bRight, topBody, bRightOuter, botBody);
-rGrad.addColorStop(0, '#FFF8DC');
-rGrad.addColorStop(0.3, '#FFECB3');
-rGrad.addColorStop(0.5, '#FFD700');
-rGrad.addColorStop(0.7, '#F0C040');
-rGrad.addColorStop(1, '#DAA520');
-ctx.fillStyle = rGrad;
-ctx.fill();
-
-// TOP TIP FACETS (3 triangles converging to top point)
-ctx.beginPath(); ctx.moveTo(cx, topTip); ctx.lineTo(bLeftOuter, topBody); ctx.lineTo(bLeft, topBody); ctx.closePath();
-ctx.fillStyle = 'rgba(139, 105, 20, 0.5)'; ctx.fill();
-
-ctx.beginPath(); ctx.moveTo(cx, topTip); ctx.lineTo(bLeft, topBody); ctx.lineTo(bRight, topBody); ctx.closePath();
-const tcGrad = ctx.createLinearGradient(cx, topTip, cx, topBody);
-tcGrad.addColorStop(0, 'rgba(255, 255, 240, 0.5)'); tcGrad.addColorStop(1, 'rgba(255, 215, 0, 0.15)');
-ctx.fillStyle = tcGrad; ctx.fill();
-
-ctx.beginPath(); ctx.moveTo(cx, topTip); ctx.lineTo(bRight, topBody); ctx.lineTo(bRightOuter, topBody); ctx.closePath();
-ctx.fillStyle = 'rgba(255, 248, 220, 0.35)'; ctx.fill();
-
-// BOTTOM TIP FACETS
-ctx.beginPath(); ctx.moveTo(cx, botTip); ctx.lineTo(bLeftOuter, botBody); ctx.lineTo(bLeft, botBody); ctx.closePath();
-ctx.fillStyle = 'rgba(100, 75, 10, 0.55)'; ctx.fill();
-
-ctx.beginPath(); ctx.moveTo(cx, botTip); ctx.lineTo(bLeft, botBody); ctx.lineTo(bRight, botBody); ctx.closePath();
-ctx.fillStyle = 'rgba(184, 134, 11, 0.35)'; ctx.fill();
-
-ctx.beginPath(); ctx.moveTo(cx, botTip); ctx.lineTo(bRight, botBody); ctx.lineTo(bRightOuter, botBody); ctx.closePath();
-ctx.fillStyle = 'rgba(218, 165, 32, 0.25)'; ctx.fill();
-
-// ALL EDGES
-ctx.strokeStyle = 'rgba(255, 248, 220, 0.55)'; ctx.lineWidth = 2;
-ctx.beginPath();
-ctx.moveTo(cx, topTip); ctx.lineTo(bLeftOuter, topBody); ctx.lineTo(bLeftOuter, botBody);
-ctx.lineTo(cx, botTip); ctx.lineTo(bRightOuter, botBody); ctx.lineTo(bRightOuter, topBody); ctx.closePath();
-ctx.stroke();
-
-// Inner ridges (NO center vertical line — only left/right inner edges)
-ctx.beginPath();
-ctx.moveTo(bLeft, topBody); ctx.lineTo(bLeft, botBody);
-ctx.moveTo(bRight, topBody); ctx.lineTo(bRight, botBody);
-ctx.stroke();
-
-// Shoulder lines
-ctx.strokeStyle = 'rgba(255, 248, 220, 0.4)'; ctx.lineWidth = 1.5;
-ctx.beginPath();
-ctx.moveTo(bLeftOuter, topBody); ctx.lineTo(bLeft, topBody); ctx.lineTo(bRight, topBody); ctx.lineTo(bRightOuter, topBody);
-ctx.moveTo(bLeftOuter, botBody); ctx.lineTo(bLeft, botBody); ctx.lineTo(bRight, botBody); ctx.lineTo(bRightOuter, botBody);
-ctx.stroke();
-
-// Tip lines
-ctx.strokeStyle = 'rgba(255, 248, 220, 0.35)'; ctx.lineWidth = 1.5;
-ctx.beginPath();
-ctx.moveTo(cx, topTip); ctx.lineTo(bLeft, topBody);
-ctx.moveTo(cx, topTip); ctx.lineTo(bRight, topBody);
-ctx.moveTo(cx, botTip); ctx.lineTo(bLeft, botBody);
-ctx.moveTo(cx, botTip); ctx.lineTo(bRight, botBody);
-ctx.stroke();
-
-// SPECULAR HIGHLIGHTS (golden crystal)
-ctx.save(); ctx.globalAlpha = 0.3;
-ctx.beginPath();
-ctx.moveTo(bLeft + 20, topBody + 30); ctx.lineTo(bLeft + 50, topBody + 20);
-ctx.lineTo(bLeft + 40, botBody - 20); ctx.lineTo(bLeft + 10, botBody - 10);
-ctx.closePath(); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
-
-ctx.save(); ctx.globalAlpha = 0.22;
-ctx.beginPath();
-ctx.moveTo(bRight + 30, topBody + 40); ctx.lineTo(bRight + 65, topBody + 50);
-ctx.lineTo(bRight + 55, botBody - 40); ctx.lineTo(bRight + 20, botBody - 30);
-ctx.closePath(); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
-
-ctx.save(); ctx.globalAlpha = 0.2;
-ctx.beginPath();
-ctx.moveTo(cx + 10, topTip + 30); ctx.lineTo(bRight - 10, topBody - 5); ctx.lineTo(cx + 5, topBody);
-ctx.closePath(); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
-
-// === GREEN FLUORITE CRYSTAL (萤石 — smaller, tilted, leaning on the golden crystal) ===
-{
-  ctx.save();
-  // Position: right side, slightly behind/below, tilted ~25 degrees
-  const fx = cx + 220;
-  const fy = cy + 80;
-  const rot = 0.45; // ~25 degrees tilt
-  ctx.translate(fx, fy);
-  ctx.rotate(rot);
-
-  const fTotalH = 400;
-  const fBodyH = 170;
-  const fTipH = 115;
-  const fTopTip = -fTotalH / 2;
-  const fTopBody = fTopTip + fTipH;
-  const fBotBody = fTopBody + fBodyH;
-  const fBotTip = fBotBody + fTipH;
-  const fFaceW = 85;
-  const fSideW = 58;
-  const fLO = -fFaceW/2 - fSideW;
-  const fL  = -fFaceW/2;
-  const fR  = fFaceW/2;
-  const fRO = fFaceW/2 + fSideW;
-
-  // Green glow behind fluorite
-  ctx.save();
-  ctx.rotate(-rot); // un-rotate for radial glow
-  const fGlow = ctx.createRadialGradient(0, 0, 20, 0, 0, 250);
-  fGlow.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
-  fGlow.addColorStop(0.5, 'rgba(16, 185, 129, 0.08)');
-  fGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
-  ctx.fillStyle = fGlow;
-  ctx.fillRect(-250, -250, 500, 500);
+  // Glow
+  ctx.save(); ctx.rotate(-rotation);
+  const glow = ctx.createRadialGradient(0, 0, 20, 0, 0, totalH * 0.55);
+  glow.addColorStop(0, `rgba(${colors.glowColor}, ${colors.glowOp})`);
+  glow.addColorStop(0.5, `rgba(${colors.glowColor}, ${colors.glowOp * 0.3})`);
+  glow.addColorStop(1, `rgba(${colors.glowColor}, 0)`);
+  ctx.fillStyle = glow; ctx.fillRect(-totalH, -totalH, totalH*2, totalH*2);
   ctx.restore();
 
-  // LEFT FACE (dark green)
+  // LEFT FACE
   ctx.beginPath();
-  ctx.moveTo(0, fTopTip); ctx.lineTo(fLO, fTopBody); ctx.lineTo(fLO, fBotBody);
-  ctx.lineTo(0, fBotTip); ctx.lineTo(fL, fBotBody); ctx.lineTo(fL, fTopBody);
-  ctx.closePath();
-  const fLeftG = ctx.createLinearGradient(fLO, fTopBody, fL, fBotBody);
-  fLeftG.addColorStop(0, '#0D5E3A');
-  fLeftG.addColorStop(0.5, '#147A4C');
-  fLeftG.addColorStop(1, '#0A4D30');
-  ctx.fillStyle = fLeftG;
-  ctx.fill();
+  ctx.moveTo(0, tTip); ctx.lineTo(LO, tBody); ctx.lineTo(LO, bBody);
+  ctx.lineTo(0, bTip); ctx.lineTo(L, bBody); ctx.lineTo(L, tBody); ctx.closePath();
+  const lg = ctx.createLinearGradient(LO, tBody, L, bBody);
+  colors.dark.forEach(([o, c]) => lg.addColorStop(o, c));
+  ctx.fillStyle = lg; ctx.fill();
 
-  // CENTER FACE (medium green, slightly translucent look)
+  // CENTER FACE
   ctx.beginPath();
-  ctx.moveTo(0, fTopTip); ctx.lineTo(fL, fTopBody); ctx.lineTo(fL, fBotBody);
-  ctx.lineTo(0, fBotTip); ctx.lineTo(fR, fBotBody); ctx.lineTo(fR, fTopBody);
-  ctx.closePath();
-  const fCG = ctx.createLinearGradient(fL, fTopTip, fR, fBotTip);
-  fCG.addColorStop(0, '#34D399');
-  fCG.addColorStop(0.25, '#2DD4A0');
-  fCG.addColorStop(0.5, '#6EE7B7');
-  fCG.addColorStop(0.75, '#34D399');
-  fCG.addColorStop(1, '#10B981');
-  ctx.fillStyle = fCG;
-  ctx.fill();
+  ctx.moveTo(0, tTip); ctx.lineTo(L, tBody); ctx.lineTo(L, bBody);
+  ctx.lineTo(0, bTip); ctx.lineTo(R, bBody); ctx.lineTo(R, tBody); ctx.closePath();
+  const mg = ctx.createLinearGradient(L, tTip, R, bTip);
+  colors.mid.forEach(([o, c]) => mg.addColorStop(o, c));
+  ctx.fillStyle = mg; ctx.fill();
 
-  // RIGHT FACE (bright green, catches light)
+  // RIGHT FACE
   ctx.beginPath();
-  ctx.moveTo(0, fTopTip); ctx.lineTo(fRO, fTopBody); ctx.lineTo(fRO, fBotBody);
-  ctx.lineTo(0, fBotTip); ctx.lineTo(fR, fBotBody); ctx.lineTo(fR, fTopBody);
-  ctx.closePath();
-  const fRG = ctx.createLinearGradient(fR, fTopBody, fRO, fBotBody);
-  fRG.addColorStop(0, '#A7F3D0');
-  fRG.addColorStop(0.3, '#6EE7B7');
-  fRG.addColorStop(0.6, '#34D399');
-  fRG.addColorStop(1, '#10B981');
-  ctx.fillStyle = fRG;
-  ctx.fill();
+  ctx.moveTo(0, tTip); ctx.lineTo(RO, tBody); ctx.lineTo(RO, bBody);
+  ctx.lineTo(0, bTip); ctx.lineTo(R, bBody); ctx.lineTo(R, tBody); ctx.closePath();
+  const rg = ctx.createLinearGradient(R, tBody, RO, bBody);
+  colors.bright.forEach(([o, c]) => rg.addColorStop(o, c));
+  ctx.fillStyle = rg; ctx.fill();
 
   // TOP TIP FACETS
-  ctx.beginPath(); ctx.moveTo(0, fTopTip); ctx.lineTo(fLO, fTopBody); ctx.lineTo(fL, fTopBody); ctx.closePath();
-  ctx.fillStyle = 'rgba(10, 77, 48, 0.5)'; ctx.fill();
-
-  ctx.beginPath(); ctx.moveTo(0, fTopTip); ctx.lineTo(fL, fTopBody); ctx.lineTo(fR, fTopBody); ctx.closePath();
-  const ftcG = ctx.createLinearGradient(0, fTopTip, 0, fTopBody);
-  ftcG.addColorStop(0, 'rgba(167, 243, 208, 0.5)'); ftcG.addColorStop(1, 'rgba(52, 211, 153, 0.15)');
-  ctx.fillStyle = ftcG; ctx.fill();
-
-  ctx.beginPath(); ctx.moveTo(0, fTopTip); ctx.lineTo(fR, fTopBody); ctx.lineTo(fRO, fTopBody); ctx.closePath();
-  ctx.fillStyle = 'rgba(167, 243, 208, 0.35)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, tTip); ctx.lineTo(LO, tBody); ctx.lineTo(L, tBody); ctx.closePath();
+  ctx.fillStyle = colors.tipDark; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, tTip); ctx.lineTo(L, tBody); ctx.lineTo(R, tBody); ctx.closePath();
+  const tcg = ctx.createLinearGradient(0, tTip, 0, tBody);
+  tcg.addColorStop(0, colors.tipBright); tcg.addColorStop(1, colors.tipDark);
+  ctx.fillStyle = tcg; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, tTip); ctx.lineTo(R, tBody); ctx.lineTo(RO, tBody); ctx.closePath();
+  ctx.fillStyle = colors.tipBright; ctx.fill();
 
   // BOTTOM TIP FACETS
-  ctx.beginPath(); ctx.moveTo(0, fBotTip); ctx.lineTo(fLO, fBotBody); ctx.lineTo(fL, fBotBody); ctx.closePath();
-  ctx.fillStyle = 'rgba(5, 50, 30, 0.55)'; ctx.fill();
-
-  ctx.beginPath(); ctx.moveTo(0, fBotTip); ctx.lineTo(fL, fBotBody); ctx.lineTo(fR, fBotBody); ctx.closePath();
-  ctx.fillStyle = 'rgba(16, 120, 80, 0.35)'; ctx.fill();
-
-  ctx.beginPath(); ctx.moveTo(0, fBotTip); ctx.lineTo(fR, fBotBody); ctx.lineTo(fRO, fBotBody); ctx.closePath();
-  ctx.fillStyle = 'rgba(52, 211, 153, 0.25)'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, bTip); ctx.lineTo(LO, bBody); ctx.lineTo(L, bBody); ctx.closePath();
+  ctx.fillStyle = colors.tipDark; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, bTip); ctx.lineTo(L, bBody); ctx.lineTo(R, bBody); ctx.closePath();
+  ctx.fillStyle = `${colors.tipDark}88`; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, bTip); ctx.lineTo(R, bBody); ctx.lineTo(RO, bBody); ctx.closePath();
+  ctx.fillStyle = `${colors.tipBright}66`; ctx.fill();
 
   // EDGES
-  ctx.strokeStyle = 'rgba(167, 243, 208, 0.5)'; ctx.lineWidth = 1.8;
+  ctx.strokeStyle = colors.edge; ctx.lineWidth = 2 * scale;
   ctx.beginPath();
-  ctx.moveTo(0, fTopTip); ctx.lineTo(fLO, fTopBody); ctx.lineTo(fLO, fBotBody);
-  ctx.lineTo(0, fBotTip); ctx.lineTo(fRO, fBotBody); ctx.lineTo(fRO, fTopBody); ctx.closePath();
+  ctx.moveTo(0, tTip); ctx.lineTo(LO, tBody); ctx.lineTo(LO, bBody);
+  ctx.lineTo(0, bTip); ctx.lineTo(RO, bBody); ctx.lineTo(RO, tBody); ctx.closePath();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(L, tBody); ctx.lineTo(L, bBody);
+  ctx.moveTo(R, tBody); ctx.lineTo(R, bBody);
+  ctx.stroke();
+  ctx.strokeStyle = colors.edge.replace('0.55', '0.35'); ctx.lineWidth = 1.5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(LO, tBody); ctx.lineTo(L, tBody); ctx.lineTo(R, tBody); ctx.lineTo(RO, tBody);
+  ctx.moveTo(LO, bBody); ctx.lineTo(L, bBody); ctx.lineTo(R, bBody); ctx.lineTo(RO, bBody);
+  ctx.moveTo(0, tTip); ctx.lineTo(L, tBody); ctx.moveTo(0, tTip); ctx.lineTo(R, tBody);
+  ctx.moveTo(0, bTip); ctx.lineTo(L, bBody); ctx.moveTo(0, bTip); ctx.lineTo(R, bBody);
   ctx.stroke();
 
-  // Inner ridges
-  ctx.beginPath();
-  ctx.moveTo(fL, fTopBody); ctx.lineTo(fL, fBotBody);
-  ctx.moveTo(fR, fTopBody); ctx.lineTo(fR, fBotBody);
-  ctx.stroke();
-
-  // Shoulder + tip lines
-  ctx.strokeStyle = 'rgba(167, 243, 208, 0.35)'; ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.moveTo(fLO, fTopBody); ctx.lineTo(fL, fTopBody); ctx.lineTo(fR, fTopBody); ctx.lineTo(fRO, fTopBody);
-  ctx.moveTo(fLO, fBotBody); ctx.lineTo(fL, fBotBody); ctx.lineTo(fR, fBotBody); ctx.lineTo(fRO, fBotBody);
-  ctx.moveTo(0, fTopTip); ctx.lineTo(fL, fTopBody);
-  ctx.moveTo(0, fTopTip); ctx.lineTo(fR, fTopBody);
-  ctx.moveTo(0, fBotTip); ctx.lineTo(fL, fBotBody);
-  ctx.moveTo(0, fBotTip); ctx.lineTo(fR, fBotBody);
-  ctx.stroke();
-
-  // Specular highlight on center face
+  // SPECULAR
   ctx.save(); ctx.globalAlpha = 0.25;
   ctx.beginPath();
-  ctx.moveTo(fL + 12, fTopBody + 20); ctx.lineTo(fL + 32, fTopBody + 14);
-  ctx.lineTo(fL + 26, fBotBody - 14); ctx.lineTo(fL + 6, fBotBody - 8);
+  ctx.moveTo(L + 15*scale, tBody + 25*scale); ctx.lineTo(L + 40*scale, tBody + 18*scale);
+  ctx.lineTo(L + 32*scale, bBody - 18*scale); ctx.lineTo(L + 8*scale, bBody - 10*scale);
   ctx.closePath(); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
 
   ctx.restore();
 }
 
-// === STAR SPARKLES (大大小小随机分布) ===
-function drawStar4(ctx, x, y, outerR, innerR) {
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const angle = (Math.PI / 4) * i - Math.PI / 2;
-    const r = i % 2 === 0 ? outerR : innerR;
-    ctx.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+const GOLD = {
+  dark: [[0,'#8B6914'],[0.3,'#A07818'],[0.6,'#9A7216'],[1,'#7A5A10']],
+  mid: [[0,'#FFE680'],[0.2,'#FFD700'],[0.45,'#FFECB3'],[0.55,'#FFD700'],[0.8,'#DAA520'],[1,'#C8960E']],
+  bright: [[0,'#FFF8DC'],[0.3,'#FFECB3'],[0.5,'#FFD700'],[0.7,'#F0C040'],[1,'#DAA520']],
+  tipDark: 'rgba(139,105,20,0.5)', tipBright: 'rgba(255,248,220,0.35)',
+  edge: 'rgba(255,248,220,0.55)', glowColor: '255,215,0', glowOp: 0.35,
+};
+const GREEN = {
+  dark: [[0,'#0D5E3A'],[0.5,'#147A4C'],[1,'#0A4D30']],
+  mid: [[0,'#34D399'],[0.25,'#2DD4A0'],[0.5,'#6EE7B7'],[0.75,'#34D399'],[1,'#10B981']],
+  bright: [[0,'#A7F3D0'],[0.3,'#6EE7B7'],[0.6,'#34D399'],[1,'#10B981']],
+  tipDark: 'rgba(10,77,48,0.5)', tipBright: 'rgba(167,243,208,0.35)',
+  edge: 'rgba(167,243,208,0.55)', glowColor: '16,185,129', glowOp: 0.25,
+};
+const WHITE = {
+  dark: [[0,'#8899AA'],[0.3,'#A0AABB'],[0.6,'#95A5B5'],[1,'#7888A0']],
+  mid: [[0,'#E8EDF5'],[0.2,'#F0F4FA'],[0.45,'#FFFFFF'],[0.55,'#F0F4FA'],[0.8,'#D8DEE8'],[1,'#C0CAD8']],
+  bright: [[0,'#FFFFFF'],[0.3,'#F0F4FF'],[0.5,'#E8EEFF'],[0.7,'#F8FAFF'],[1,'#DEE4F0']],
+  tipDark: 'rgba(100,115,140,0.45)', tipBright: 'rgba(240,244,255,0.4)',
+  edge: 'rgba(220,230,245,0.55)', glowColor: '200,210,230', glowOp: 0.2,
+};
+
+function drawBackground(ctx) {
+  const bg = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+  bg.addColorStop(0, '#0F1B4D'); bg.addColorStop(0.4, '#1E3A8A');
+  bg.addColorStop(0.7, '#1D4ED8'); bg.addColorStop(1, '#2563EB');
+  roundRect(ctx, 0, 0, SIZE, SIZE, 180);
+  ctx.fillStyle = bg; ctx.fill();
+  const wg = ctx.createRadialGradient(SIZE/2, SIZE/2+30, 0, SIZE/2, SIZE/2+30, SIZE*0.5);
+  wg.addColorStop(0, 'rgba(255,200,50,0.18)');
+  wg.addColorStop(0.4, 'rgba(255,180,30,0.08)');
+  wg.addColorStop(1, 'rgba(255,180,30,0)');
+  ctx.fillStyle = wg; ctx.fill();
+}
+
+function drawStars(ctx, cx) {
+  let seed = 42;
+  function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+
+  const stars = [
+    { x: cx - 60, y: 160, outer: 30, inner: 5, op: 1.0 },
+    { x: cx + 250, y: 280, outer: 22, inner: 4, op: 0.85 },
+    { x: cx - 240, y: 350, outer: 16, inner: 3, op: 0.75 },
+    { x: 800, y: 180, outer: 18, inner: 3, op: 0.6 },
+    { x: 150, y: 250, outer: 12, inner: 2, op: 0.55 },
+    { x: 880, y: 720, outer: 14, inner: 3, op: 0.5 },
+    { x: 180, y: 780, outer: 10, inner: 2, op: 0.4 },
+    { x: cx, y: 900, outer: 8, inner: 1.5, op: 0.35 },
+    { x: 900, y: 420, outer: 7, inner: 1.5, op: 0.3 },
+    { x: 120, y: 550, outer: 6, inner: 1, op: 0.28 },
+    { x: 700, y: 870, outer: 5, inner: 1, op: 0.22 },
+  ];
+  for (let i = 0; i < 15; i++) {
+    stars.push({ x: 70+rand()*884, y: 70+rand()*884, outer: 2+rand()*7, inner: 0.6+rand()*1.5, op: 0.12+rand()*0.3 });
   }
-  ctx.closePath();
+  stars.forEach(({ x, y, outer, inner, op }) => {
+    const glowR = outer * 2.5;
+    const sg = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+    sg.addColorStop(0, `rgba(255,250,210,${op*0.65})`);
+    sg.addColorStop(0.35, `rgba(255,240,170,${op*0.2})`);
+    sg.addColorStop(1, 'rgba(255,240,170,0)');
+    ctx.fillStyle = sg; ctx.fillRect(x-glowR, y-glowR, glowR*2, glowR*2);
+    ctx.save(); ctx.globalAlpha = op;
+    drawStar4(ctx, x, y, outer, inner);
+    ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
+  });
 }
 
-// Seeded random for reproducibility
-let seed = 42;
-function rand() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+// === VERSION 1: Gold + Green (green behind) ===
+{
+  const canvas1 = createCanvas(SIZE, SIZE);
+  const c = canvas1.getContext('2d');
+  drawBackground(c);
+  const px = SIZE / 2;
+  const py = 850; // pivot = bottom tip convergence
 
-// Generate irregular star distribution — clustered near gem, sparse at edges
-const stars = [
-  // Big bright ones near gem (hero sparkles)
-  { x: cx - 50, y: topTip - 30, outer: 32, inner: 6, op: 1.0 },
-  { x: bRightOuter + 40, y: topBody + 20, outer: 24, inner: 5, op: 0.9 },
-  { x: bLeftOuter - 20, y: botBody - 40, outer: 18, inner: 4, op: 0.85 },
-  // Medium ones scattered
-  { x: 780, y: 200, outer: 20, inner: 4, op: 0.7 },
-  { x: 170, y: 300, outer: 14, inner: 3, op: 0.6 },
-  { x: 850, y: 680, outer: 16, inner: 3, op: 0.55 },
-  { x: cx + 200, y: 600, outer: 12, inner: 2, op: 0.65 },
-  { x: 200, y: 750, outer: 10, inner: 2, op: 0.45 },
-  // Small ones far from gem
-  { x: 130, y: 160, outer: 8, inner: 1.5, op: 0.4 },
-  { x: 900, y: 150, outer: 6, inner: 1, op: 0.35 },
-  { x: 920, y: 450, outer: 7, inner: 1.5, op: 0.3 },
-  { x: 100, y: 550, outer: 5, inner: 1, op: 0.3 },
-  { x: cx - 10, y: 900, outer: 9, inner: 2, op: 0.4 },
-  { x: 700, y: 850, outer: 6, inner: 1, op: 0.25 },
-  { x: 350, y: 130, outer: 5, inner: 1, op: 0.3 },
-];
+  // Green fluorite BEHIND, tilted right
+  drawHexCrystal(c, px, py, 0.35, 0.7, GREEN);
+  // Golden crystal in FRONT, vertical
+  drawHexCrystal(c, px, py, 0, 1.0, GOLD);
 
-// Add some randomly placed tiny stars for natural feel
-for (let i = 0; i < 12; i++) {
-  const x = 80 + rand() * 860;
-  const y = 80 + rand() * 860;
-  const outer = 3 + rand() * 6;
-  const inner = 0.8 + rand() * 1.5;
-  const op = 0.15 + rand() * 0.35;
-  stars.push({ x, y, outer, inner, op });
+  drawStars(c, px);
+  fs.writeFileSync('assets/icon.png', canvas1.toBuffer('image/png'));
+  fs.copyFileSync('assets/icon.png', 'assets/adaptive-icon.png');
+  console.log('icon.png: Gold front + Green behind');
 }
 
-stars.forEach(({ x, y, outer, inner, op }) => {
-  // Glow halo (bigger for bigger stars)
-  const glowR = outer * 2.5;
-  const sg = ctx.createRadialGradient(x, y, 0, x, y, glowR);
-  sg.addColorStop(0, `rgba(255, 250, 210, ${op * 0.65})`);
-  sg.addColorStop(0.35, `rgba(255, 240, 170, ${op * 0.2})`);
-  sg.addColorStop(1, 'rgba(255, 240, 170, 0)');
-  ctx.fillStyle = sg;
-  ctx.fillRect(x - glowR, y - glowR, glowR * 2, glowR * 2);
+// === VERSION 2: White + Gold + Green — ALL TIPS CONVERGE AT ONE POINT ===
+{
+  const canvas2 = createCanvas(SIZE, SIZE);
+  const c = canvas2.getContext('2d');
+  drawBackground(c);
+  const px = SIZE / 2;  // same pivot X for all 3
+  const py = 860;       // same pivot Y — the single convergence point
 
-  // Star shape
-  ctx.save();
-  ctx.globalAlpha = op;
-  drawStar4(ctx, x, y, outer, inner);
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fill();
-  ctx.restore();
-});
+  // Green (medium-thick, scale 0.78) — behind right, tilted ~50deg
+  drawHexCrystal(c, px, py, 0.87, 0.78, GREEN);
+  // White (thinnest but tallest, scale 0.52, heightScale 1.5) — behind left, tilted ~38deg
+  drawHexCrystal(c, px, py, -0.66, 0.52, WHITE, 1.5);
+  // Gold (thickest, scale 1.0) — front center, near vertical ~3deg
+  drawHexCrystal(c, px, py, 0.05, 1.0, GOLD);
 
-// === SAVE ===
-const buffer = canvas.toBuffer('image/png');
-fs.writeFileSync('assets/icon.png', buffer);
-fs.copyFileSync('assets/icon.png', 'assets/adaptive-icon.png');
-console.log('Generated hex prism crystal icon');
+  drawStars(c, px);
+  fs.writeFileSync('assets/icon-v2.png', canvas2.toBuffer('image/png'));
+  console.log('icon-v2.png: 3 crystals, tips converge, varied thickness & angles');
+}

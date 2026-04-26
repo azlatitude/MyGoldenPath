@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@types/react": "~18.3.18",
+    "canvas": "^3.2.3",
     "typescript": "~5.3.3"
   }
 }
