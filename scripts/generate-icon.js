@@ -68,96 +68,157 @@ warmGlow.addColorStop(1, 'rgba(255, 180, 30, 0)');
 ctx.fillStyle = warmGlow;
 ctx.fill();
 
-// === GOLDEN DIAMOND GEM (classic diamond shape) ===
+// === GOLDEN CRYSTAL PRISM GEM (闪灵水晶 double-terminated hexagonal prism) ===
 const cx = SIZE / 2;
-const cy = SIZE / 2;
-const top = [cx, 180];
-const left = [cx - 280, 440];
-const right = [cx + 280, 440];
-const bottom = [cx, 820];
+const cy = SIZE / 2 + 10;
+
+// Crystal dimensions
+const totalH = 620;      // total height tip-to-tip
+const bodyH = 280;        // middle prism body height
+const tipH = 170;         // each tip height
+const bodyW = 200;        // half-width of body
+const midW = bodyW * 0.6; // mid-facet width
+
+// Key Y positions
+const topTip = cy - totalH / 2;
+const topBody = topTip + tipH;
+const botBody = topBody + bodyH;
+const botTip = botBody + tipH;
 
 // Outer glow
-const gemGlow = ctx.createRadialGradient(cx, cy + 20, 50, cx, cy + 20, 380);
-gemGlow.addColorStop(0, 'rgba(255, 215, 0, 0.35)');
+const gemGlow = ctx.createRadialGradient(cx, cy, 50, cx, cy, 400);
+gemGlow.addColorStop(0, 'rgba(255, 215, 0, 0.4)');
 gemGlow.addColorStop(0.5, 'rgba(255, 180, 0, 0.12)');
 gemGlow.addColorStop(1, 'rgba(255, 180, 0, 0)');
 ctx.fillStyle = gemGlow;
 roundRect(ctx, 0, 0, SIZE, SIZE, 180);
 ctx.fill();
 
-// Main diamond body
+// === Draw crystal as 3 visible faces of hexagonal prism ===
+
+// LEFT FACE (darker)
 ctx.beginPath();
-ctx.moveTo(...top);
-ctx.lineTo(...right);
-ctx.lineTo(...bottom);
-ctx.lineTo(...left);
+ctx.moveTo(cx, topTip);                // top tip
+ctx.lineTo(cx - bodyW, topBody);       // top-left shoulder
+ctx.lineTo(cx - bodyW, botBody);       // bottom-left shoulder
+ctx.lineTo(cx, botTip);                // bottom tip
+ctx.lineTo(cx, botBody);               // bottom center
+ctx.lineTo(cx, topBody);               // top center
 ctx.closePath();
-
-const bodyGrad = ctx.createLinearGradient(left[0], top[1], right[0], bottom[1]);
-bodyGrad.addColorStop(0, '#FFF8DC');
-bodyGrad.addColorStop(0.15, '#FFD700');
-bodyGrad.addColorStop(0.35, '#FFC940');
-bodyGrad.addColorStop(0.5, '#FFECB3');
-bodyGrad.addColorStop(0.65, '#FFD700');
-bodyGrad.addColorStop(0.85, '#DAA520');
-bodyGrad.addColorStop(1, '#B8860B');
-ctx.fillStyle = bodyGrad;
+const leftGrad = ctx.createLinearGradient(cx - bodyW, topTip, cx, botTip);
+leftGrad.addColorStop(0, '#DAA520');
+leftGrad.addColorStop(0.3, '#C8960E');
+leftGrad.addColorStop(0.5, '#E8B830');
+leftGrad.addColorStop(0.7, '#B8860B');
+leftGrad.addColorStop(1, '#8B6914');
+ctx.fillStyle = leftGrad;
 ctx.fill();
-ctx.strokeStyle = 'rgba(255, 248, 220, 0.7)';
-ctx.lineWidth = 2.5;
-ctx.stroke();
 
-// Facets
-const crownLeft = [cx - 100, 440];
-const crownRight = [cx + 100, 440];
-
+// RIGHT FACE (brighter, catches light)
 ctx.beginPath();
-ctx.moveTo(...top); ctx.lineTo(...left); ctx.lineTo(...crownLeft); ctx.closePath();
-ctx.fillStyle = 'rgba(184, 134, 11, 0.3)';
+ctx.moveTo(cx, topTip);                // top tip
+ctx.lineTo(cx + bodyW, topBody);       // top-right shoulder
+ctx.lineTo(cx + bodyW, botBody);       // bottom-right shoulder
+ctx.lineTo(cx, botTip);                // bottom tip
+ctx.lineTo(cx, botBody);               // bottom center
+ctx.lineTo(cx, topBody);               // top center
+ctx.closePath();
+const rightGrad = ctx.createLinearGradient(cx, topTip, cx + bodyW, botTip);
+rightGrad.addColorStop(0, '#FFF8DC');
+rightGrad.addColorStop(0.2, '#FFE680');
+rightGrad.addColorStop(0.4, '#FFD700');
+rightGrad.addColorStop(0.6, '#FFECB3');
+rightGrad.addColorStop(0.8, '#FFD700');
+rightGrad.addColorStop(1, '#F0C040');
+ctx.fillStyle = rightGrad;
 ctx.fill();
 
+// TOP TIP — left facet
 ctx.beginPath();
-ctx.moveTo(...top); ctx.lineTo(...right); ctx.lineTo(...crownRight); ctx.closePath();
-ctx.fillStyle = 'rgba(255, 236, 179, 0.25)';
+ctx.moveTo(cx, topTip);
+ctx.lineTo(cx - bodyW, topBody);
+ctx.lineTo(cx, topBody);
+ctx.closePath();
+ctx.fillStyle = 'rgba(184, 134, 11, 0.4)';
 ctx.fill();
 
+// TOP TIP — right facet (bright highlight)
 ctx.beginPath();
-ctx.moveTo(...top); ctx.lineTo(...crownLeft); ctx.lineTo(...crownRight); ctx.closePath();
-const centerGrad = ctx.createLinearGradient(cx, top[1], cx, 440);
-centerGrad.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
-centerGrad.addColorStop(1, 'rgba(255, 248, 220, 0.1)');
-ctx.fillStyle = centerGrad;
+ctx.moveTo(cx, topTip);
+ctx.lineTo(cx + bodyW, topBody);
+ctx.lineTo(cx, topBody);
+ctx.closePath();
+const topRightGrad = ctx.createLinearGradient(cx, topTip, cx + bodyW, topBody);
+topRightGrad.addColorStop(0, 'rgba(255, 255, 240, 0.6)');
+topRightGrad.addColorStop(1, 'rgba(255, 236, 179, 0.2)');
+ctx.fillStyle = topRightGrad;
 ctx.fill();
 
+// BOTTOM TIP — left facet
 ctx.beginPath();
-ctx.moveTo(...left); ctx.lineTo(...crownLeft); ctx.lineTo(...bottom); ctx.closePath();
-ctx.fillStyle = 'rgba(184, 134, 11, 0.2)';
+ctx.moveTo(cx, botTip);
+ctx.lineTo(cx - bodyW, botBody);
+ctx.lineTo(cx, botBody);
+ctx.closePath();
+ctx.fillStyle = 'rgba(139, 105, 20, 0.5)';
 ctx.fill();
 
+// BOTTOM TIP — right facet
 ctx.beginPath();
-ctx.moveTo(...right); ctx.lineTo(...crownRight); ctx.lineTo(...bottom); ctx.closePath();
-ctx.fillStyle = 'rgba(255, 236, 179, 0.15)';
+ctx.moveTo(cx, botTip);
+ctx.lineTo(cx + bodyW, botBody);
+ctx.lineTo(cx, botBody);
+ctx.closePath();
+ctx.fillStyle = 'rgba(218, 165, 32, 0.3)';
 ctx.fill();
 
-// Facet lines
-ctx.strokeStyle = 'rgba(218, 165, 32, 0.5)';
+// Crystal edges
+ctx.strokeStyle = 'rgba(255, 248, 220, 0.6)';
 ctx.lineWidth = 2;
 ctx.beginPath();
-ctx.moveTo(...top); ctx.lineTo(...crownLeft);
-ctx.moveTo(...top); ctx.lineTo(...crownRight);
-ctx.moveTo(...left); ctx.lineTo(...right);
-ctx.moveTo(...crownLeft); ctx.lineTo(...bottom);
-ctx.moveTo(...crownRight); ctx.lineTo(...bottom);
+// Outline
+ctx.moveTo(cx, topTip);
+ctx.lineTo(cx - bodyW, topBody);
+ctx.lineTo(cx - bodyW, botBody);
+ctx.lineTo(cx, botTip);
+ctx.lineTo(cx + bodyW, botBody);
+ctx.lineTo(cx + bodyW, topBody);
+ctx.closePath();
+ctx.stroke();
+// Center ridge line
+ctx.beginPath();
+ctx.moveTo(cx, topTip);
+ctx.lineTo(cx, botTip);
+ctx.stroke();
+// Shoulder lines
+ctx.beginPath();
+ctx.moveTo(cx - bodyW, topBody);
+ctx.lineTo(cx + bodyW, topBody);
+ctx.moveTo(cx - bodyW, botBody);
+ctx.lineTo(cx + bodyW, botBody);
 ctx.stroke();
 
-// Specular highlight
+// Specular highlight streak on right face
 ctx.save();
-ctx.globalAlpha = 0.3;
+ctx.globalAlpha = 0.35;
 ctx.beginPath();
-ctx.moveTo(cx - 160, 340);
-ctx.lineTo(cx - 60, 320);
-ctx.lineTo(cx + 40, 500);
-ctx.lineTo(cx - 60, 520);
+ctx.moveTo(cx + 40, topBody + 20);
+ctx.lineTo(cx + 100, topBody + 40);
+ctx.lineTo(cx + 80, botBody - 30);
+ctx.lineTo(cx + 20, botBody - 10);
+ctx.closePath();
+ctx.fillStyle = '#FFFFFF';
+ctx.fill();
+ctx.restore();
+
+// Small specular on top-right tip
+ctx.save();
+ctx.globalAlpha = 0.25;
+ctx.beginPath();
+ctx.moveTo(cx + 20, topTip + 40);
+ctx.lineTo(cx + 90, topBody - 10);
+ctx.lineTo(cx + 50, topBody);
+ctx.lineTo(cx + 10, topTip + 70);
 ctx.closePath();
 ctx.fillStyle = '#FFFFFF';
 ctx.fill();
