@@ -187,7 +187,7 @@ ctx.moveTo(cx, botTip); ctx.lineTo(bLeft, botBody);
 ctx.moveTo(cx, botTip); ctx.lineTo(bRight, botBody);
 ctx.stroke();
 
-// SPECULAR HIGHLIGHTS
+// SPECULAR HIGHLIGHTS (golden crystal)
 ctx.save(); ctx.globalAlpha = 0.3;
 ctx.beginPath();
 ctx.moveTo(bLeft + 20, topBody + 30); ctx.lineTo(bLeft + 50, topBody + 20);
@@ -204,6 +204,136 @@ ctx.save(); ctx.globalAlpha = 0.2;
 ctx.beginPath();
 ctx.moveTo(cx + 10, topTip + 30); ctx.lineTo(bRight - 10, topBody - 5); ctx.lineTo(cx + 5, topBody);
 ctx.closePath(); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
+
+// === GREEN FLUORITE CRYSTAL (萤石 — smaller, tilted, leaning on the golden crystal) ===
+{
+  ctx.save();
+  // Position: right side, slightly behind/below, tilted ~25 degrees
+  const fx = cx + 220;
+  const fy = cy + 80;
+  const rot = 0.45; // ~25 degrees tilt
+  ctx.translate(fx, fy);
+  ctx.rotate(rot);
+
+  const fTotalH = 400;
+  const fBodyH = 170;
+  const fTipH = 115;
+  const fTopTip = -fTotalH / 2;
+  const fTopBody = fTopTip + fTipH;
+  const fBotBody = fTopBody + fBodyH;
+  const fBotTip = fBotBody + fTipH;
+  const fFaceW = 85;
+  const fSideW = 58;
+  const fLO = -fFaceW/2 - fSideW;
+  const fL  = -fFaceW/2;
+  const fR  = fFaceW/2;
+  const fRO = fFaceW/2 + fSideW;
+
+  // Green glow behind fluorite
+  ctx.save();
+  ctx.rotate(-rot); // un-rotate for radial glow
+  const fGlow = ctx.createRadialGradient(0, 0, 20, 0, 0, 250);
+  fGlow.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+  fGlow.addColorStop(0.5, 'rgba(16, 185, 129, 0.08)');
+  fGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+  ctx.fillStyle = fGlow;
+  ctx.fillRect(-250, -250, 500, 500);
+  ctx.restore();
+
+  // LEFT FACE (dark green)
+  ctx.beginPath();
+  ctx.moveTo(0, fTopTip); ctx.lineTo(fLO, fTopBody); ctx.lineTo(fLO, fBotBody);
+  ctx.lineTo(0, fBotTip); ctx.lineTo(fL, fBotBody); ctx.lineTo(fL, fTopBody);
+  ctx.closePath();
+  const fLeftG = ctx.createLinearGradient(fLO, fTopBody, fL, fBotBody);
+  fLeftG.addColorStop(0, '#0D5E3A');
+  fLeftG.addColorStop(0.5, '#147A4C');
+  fLeftG.addColorStop(1, '#0A4D30');
+  ctx.fillStyle = fLeftG;
+  ctx.fill();
+
+  // CENTER FACE (medium green, slightly translucent look)
+  ctx.beginPath();
+  ctx.moveTo(0, fTopTip); ctx.lineTo(fL, fTopBody); ctx.lineTo(fL, fBotBody);
+  ctx.lineTo(0, fBotTip); ctx.lineTo(fR, fBotBody); ctx.lineTo(fR, fTopBody);
+  ctx.closePath();
+  const fCG = ctx.createLinearGradient(fL, fTopTip, fR, fBotTip);
+  fCG.addColorStop(0, '#34D399');
+  fCG.addColorStop(0.25, '#2DD4A0');
+  fCG.addColorStop(0.5, '#6EE7B7');
+  fCG.addColorStop(0.75, '#34D399');
+  fCG.addColorStop(1, '#10B981');
+  ctx.fillStyle = fCG;
+  ctx.fill();
+
+  // RIGHT FACE (bright green, catches light)
+  ctx.beginPath();
+  ctx.moveTo(0, fTopTip); ctx.lineTo(fRO, fTopBody); ctx.lineTo(fRO, fBotBody);
+  ctx.lineTo(0, fBotTip); ctx.lineTo(fR, fBotBody); ctx.lineTo(fR, fTopBody);
+  ctx.closePath();
+  const fRG = ctx.createLinearGradient(fR, fTopBody, fRO, fBotBody);
+  fRG.addColorStop(0, '#A7F3D0');
+  fRG.addColorStop(0.3, '#6EE7B7');
+  fRG.addColorStop(0.6, '#34D399');
+  fRG.addColorStop(1, '#10B981');
+  ctx.fillStyle = fRG;
+  ctx.fill();
+
+  // TOP TIP FACETS
+  ctx.beginPath(); ctx.moveTo(0, fTopTip); ctx.lineTo(fLO, fTopBody); ctx.lineTo(fL, fTopBody); ctx.closePath();
+  ctx.fillStyle = 'rgba(10, 77, 48, 0.5)'; ctx.fill();
+
+  ctx.beginPath(); ctx.moveTo(0, fTopTip); ctx.lineTo(fL, fTopBody); ctx.lineTo(fR, fTopBody); ctx.closePath();
+  const ftcG = ctx.createLinearGradient(0, fTopTip, 0, fTopBody);
+  ftcG.addColorStop(0, 'rgba(167, 243, 208, 0.5)'); ftcG.addColorStop(1, 'rgba(52, 211, 153, 0.15)');
+  ctx.fillStyle = ftcG; ctx.fill();
+
+  ctx.beginPath(); ctx.moveTo(0, fTopTip); ctx.lineTo(fR, fTopBody); ctx.lineTo(fRO, fTopBody); ctx.closePath();
+  ctx.fillStyle = 'rgba(167, 243, 208, 0.35)'; ctx.fill();
+
+  // BOTTOM TIP FACETS
+  ctx.beginPath(); ctx.moveTo(0, fBotTip); ctx.lineTo(fLO, fBotBody); ctx.lineTo(fL, fBotBody); ctx.closePath();
+  ctx.fillStyle = 'rgba(5, 50, 30, 0.55)'; ctx.fill();
+
+  ctx.beginPath(); ctx.moveTo(0, fBotTip); ctx.lineTo(fL, fBotBody); ctx.lineTo(fR, fBotBody); ctx.closePath();
+  ctx.fillStyle = 'rgba(16, 120, 80, 0.35)'; ctx.fill();
+
+  ctx.beginPath(); ctx.moveTo(0, fBotTip); ctx.lineTo(fR, fBotBody); ctx.lineTo(fRO, fBotBody); ctx.closePath();
+  ctx.fillStyle = 'rgba(52, 211, 153, 0.25)'; ctx.fill();
+
+  // EDGES
+  ctx.strokeStyle = 'rgba(167, 243, 208, 0.5)'; ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(0, fTopTip); ctx.lineTo(fLO, fTopBody); ctx.lineTo(fLO, fBotBody);
+  ctx.lineTo(0, fBotTip); ctx.lineTo(fRO, fBotBody); ctx.lineTo(fRO, fTopBody); ctx.closePath();
+  ctx.stroke();
+
+  // Inner ridges
+  ctx.beginPath();
+  ctx.moveTo(fL, fTopBody); ctx.lineTo(fL, fBotBody);
+  ctx.moveTo(fR, fTopBody); ctx.lineTo(fR, fBotBody);
+  ctx.stroke();
+
+  // Shoulder + tip lines
+  ctx.strokeStyle = 'rgba(167, 243, 208, 0.35)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(fLO, fTopBody); ctx.lineTo(fL, fTopBody); ctx.lineTo(fR, fTopBody); ctx.lineTo(fRO, fTopBody);
+  ctx.moveTo(fLO, fBotBody); ctx.lineTo(fL, fBotBody); ctx.lineTo(fR, fBotBody); ctx.lineTo(fRO, fBotBody);
+  ctx.moveTo(0, fTopTip); ctx.lineTo(fL, fTopBody);
+  ctx.moveTo(0, fTopTip); ctx.lineTo(fR, fTopBody);
+  ctx.moveTo(0, fBotTip); ctx.lineTo(fL, fBotBody);
+  ctx.moveTo(0, fBotTip); ctx.lineTo(fR, fBotBody);
+  ctx.stroke();
+
+  // Specular highlight on center face
+  ctx.save(); ctx.globalAlpha = 0.25;
+  ctx.beginPath();
+  ctx.moveTo(fL + 12, fTopBody + 20); ctx.lineTo(fL + 32, fTopBody + 14);
+  ctx.lineTo(fL + 26, fBotBody - 14); ctx.lineTo(fL + 6, fBotBody - 8);
+  ctx.closePath(); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
+
+  ctx.restore();
+}
 
 // === STAR SPARKLES (大大小小随机分布) ===
 function drawStar4(ctx, x, y, outerR, innerR) {
