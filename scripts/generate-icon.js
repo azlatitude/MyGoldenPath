@@ -1,73 +1,98 @@
+const { createCanvas } = require('canvas');
 const fs = require('fs');
 
-// Generate SVG icon
 const SIZE = 1024;
-const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1E3A8A"/>
-      <stop offset="50%" style="stop-color:#2563EB"/>
-      <stop offset="100%" style="stop-color:#3B82F6"/>
-    </linearGradient>
-    <linearGradient id="gem" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFFFFF"/>
-      <stop offset="30%" style="stop-color:#E0F2FE"/>
-      <stop offset="50%" style="stop-color:#BAE6FD"/>
-      <stop offset="70%" style="stop-color:#E0F2FE"/>
-      <stop offset="100%" style="stop-color:#FFFFFF"/>
-    </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="50%" r="45%">
-      <stop offset="0%" style="stop-color:rgba(147,197,253,0.35)"/>
-      <stop offset="100%" style="stop-color:rgba(147,197,253,0)"/>
-    </radialGradient>
-    <filter id="sparkle" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="gemGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="15" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
+const canvas = createCanvas(SIZE, SIZE);
+const ctx = canvas.getContext('2d');
 
-  <!-- Background -->
-  <rect width="${SIZE}" height="${SIZE}" fill="url(#bg)" rx="180"/>
+// Rounded rect helper
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
 
-  <!-- Center glow -->
-  <rect width="${SIZE}" height="${SIZE}" fill="url(#glow)"/>
+// Blue gradient background with rounded corners
+const bg = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+bg.addColorStop(0, '#1E3A8A');
+bg.addColorStop(0.5, '#2563EB');
+bg.addColorStop(1, '#3B82F6');
+roundRect(ctx, 0, 0, SIZE, SIZE, 180);
+ctx.fillStyle = bg;
+ctx.fill();
 
-  <!-- Diamond gem -->
-  <g filter="url(#gemGlow)">
-    <polygon points="512,200 772,420 680,780 344,780 252,420" fill="url(#gem)" stroke="rgba(255,255,255,0.8)" stroke-width="3"/>
+// Radial glow
+const glow = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, SIZE*0.45);
+glow.addColorStop(0, 'rgba(147, 197, 253, 0.35)');
+glow.addColorStop(1, 'rgba(147, 197, 253, 0)');
+ctx.fillStyle = glow;
+ctx.fill();
 
-    <!-- Facet lines -->
-    <line x1="512" y1="200" x2="430" y2="420" stroke="rgba(96,165,250,0.5)" stroke-width="2.5"/>
-    <line x1="512" y1="200" x2="594" y2="420" stroke="rgba(96,165,250,0.5)" stroke-width="2.5"/>
-    <line x1="252" y1="420" x2="772" y2="420" stroke="rgba(96,165,250,0.5)" stroke-width="2.5"/>
-    <line x1="430" y1="420" x2="512" y2="680" stroke="rgba(96,165,250,0.4)" stroke-width="2"/>
-    <line x1="594" y1="420" x2="512" y2="680" stroke="rgba(96,165,250,0.4)" stroke-width="2"/>
-    <line x1="344" y1="780" x2="430" y2="420" stroke="rgba(96,165,250,0.3)" stroke-width="1.5"/>
-    <line x1="680" y1="780" x2="594" y2="420" stroke="rgba(96,165,250,0.3)" stroke-width="1.5"/>
-  </g>
+// Diamond gem
+const cx = SIZE / 2;
+const cy = SIZE / 2 - 10;
 
-  <!-- Sparkles -->
-  <g filter="url(#sparkle)">
-    <circle cx="420" cy="310" r="8" fill="white" opacity="0.95"/>
-    <circle cx="620" cy="350" r="6" fill="white" opacity="0.9"/>
-    <circle cx="560" cy="520" r="5" fill="white" opacity="0.85"/>
-    <circle cx="380" cy="500" r="7" fill="white" opacity="0.9"/>
-    <circle cx="660" cy="260" r="4" fill="white" opacity="0.8"/>
-    <circle cx="440" cy="650" r="4" fill="white" opacity="0.75"/>
-    <circle cx="300" cy="380" r="5" fill="white" opacity="0.7"/>
-    <circle cx="700" cy="480" r="3" fill="white" opacity="0.7"/>
-  </g>
-</svg>`;
+ctx.beginPath();
+ctx.moveTo(cx, 200);       // top
+ctx.lineTo(cx + 260, 420); // upper right
+ctx.lineTo(cx + 168, 780); // lower right
+ctx.lineTo(cx - 168, 780); // lower left
+ctx.lineTo(cx - 260, 420); // upper left
+ctx.closePath();
 
-fs.writeFileSync('assets/icon.svg', svg);
-console.log('Generated assets/icon.svg');
-console.log('');
-console.log('To convert to PNG for app icon, use one of:');
-console.log('  macOS:  npx svg2png-cli assets/icon.svg -o assets/icon.png -w 1024 -h 1024');
-console.log('  or:     npx sharp-cli -i assets/icon.svg -o assets/icon.png --width 1024 --height 1024');
-console.log('  or use an online converter like https://svgtopng.com/');
+const gemGrad = ctx.createLinearGradient(cx - 260, 200, cx + 260, 780);
+gemGrad.addColorStop(0, '#FFFFFF');
+gemGrad.addColorStop(0.3, '#E0F2FE');
+gemGrad.addColorStop(0.5, '#BAE6FD');
+gemGrad.addColorStop(0.7, '#E0F2FE');
+gemGrad.addColorStop(1, '#FFFFFF');
+ctx.fillStyle = gemGrad;
+ctx.fill();
+ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+ctx.lineWidth = 3;
+ctx.stroke();
+
+// Facet lines
+ctx.strokeStyle = 'rgba(96, 165, 250, 0.5)';
+ctx.lineWidth = 2.5;
+ctx.beginPath();
+ctx.moveTo(cx, 200); ctx.lineTo(cx - 82, 420);
+ctx.moveTo(cx, 200); ctx.lineTo(cx + 82, 420);
+ctx.moveTo(cx - 260, 420); ctx.lineTo(cx + 260, 420);
+ctx.moveTo(cx - 82, 420); ctx.lineTo(cx, 680);
+ctx.moveTo(cx + 82, 420); ctx.lineTo(cx, 680);
+ctx.moveTo(cx - 168, 780); ctx.lineTo(cx - 82, 420);
+ctx.moveTo(cx + 168, 780); ctx.lineTo(cx + 82, 420);
+ctx.stroke();
+
+// Sparkles with glow
+const sparkles = [
+  [420, 310, 10], [620, 350, 8], [560, 520, 7],
+  [380, 500, 9], [660, 260, 6], [440, 650, 6],
+  [300, 380, 7], [700, 480, 5],
+];
+sparkles.forEach(([x, y, r]) => {
+  const sg = ctx.createRadialGradient(x, y, 0, x, y, r * 4);
+  sg.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  sg.addColorStop(0.4, 'rgba(255, 255, 255, 0.3)');
+  sg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(x - r*4, y - r*4, r*8, r*8);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+});
+
+const buffer = canvas.toBuffer('image/png');
+fs.writeFileSync('assets/icon.png', buffer);
+fs.copyFileSync('assets/icon.png', 'assets/adaptive-icon.png');
+console.log('Generated assets/icon.png and assets/adaptive-icon.png (1024x1024)');
