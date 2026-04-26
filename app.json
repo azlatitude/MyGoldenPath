@@ -6,15 +6,26 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A8A"
+    },
     "plugins": [
       "expo-router",
       "expo-notifications"
     ],
     "ios": {
-      "bundleIdentifier": "com.mygoldenpath.app"
+      "bundleIdentifier": "com.mygoldenpath.app",
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.mygoldenpath.app"
+      "package": "com.mygoldenpath.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1E3A8A"
+      }
     },
     "newArchEnabled": false
   }
