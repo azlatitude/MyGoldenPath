@@ -165,11 +165,10 @@ ctx.moveTo(cx, topTip); ctx.lineTo(bLeftOuter, topBody); ctx.lineTo(bLeftOuter, 
 ctx.lineTo(cx, botTip); ctx.lineTo(bRightOuter, botBody); ctx.lineTo(bRightOuter, topBody); ctx.closePath();
 ctx.stroke();
 
-// Inner ridges
+// Inner ridges (NO center vertical line — only left/right inner edges)
 ctx.beginPath();
 ctx.moveTo(bLeft, topBody); ctx.lineTo(bLeft, botBody);
 ctx.moveTo(bRight, topBody); ctx.lineTo(bRight, botBody);
-ctx.moveTo(cx, topTip); ctx.lineTo(cx, botTip);
 ctx.stroke();
 
 // Shoulder lines
@@ -206,56 +205,70 @@ ctx.beginPath();
 ctx.moveTo(cx + 10, topTip + 30); ctx.lineTo(bRight - 10, topBody - 5); ctx.lineTo(cx + 5, topBody);
 ctx.closePath(); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
 
-// === CRYSTAL PRISM SPARKLES ===
-const crystals = [
-  [cx - 30, 270, 55, 12, -0.3, 0.95],
-  [cx + 150, 400, 40, 9, 0.8, 0.85],
-  [cx - 180, 420, 35, 8, -0.6, 0.8],
-  [cx + 60, 580, 30, 7, 1.2, 0.75],
-  [cx - 90, 650, 28, 6, -1.0, 0.7],
-  [180, 190, 48, 11, -0.8, 0.65],
-  [830, 230, 38, 9, 0.5, 0.6],
-  [120, 680, 32, 7, -1.4, 0.45],
-  [890, 650, 42, 9, 1.1, 0.5],
-  [760, 520, 26, 6, -0.2, 0.4],
-  [260, 530, 22, 5, 0.9, 0.35],
-  [cx + 20, 870, 34, 8, 0.3, 0.45],
-  [680, 160, 28, 6, -1.2, 0.4],
-  [340, 160, 24, 5, 0.6, 0.35],
-  [910, 420, 20, 5, -0.5, 0.3],
+// === STAR SPARKLES (大大小小随机分布) ===
+function drawStar4(ctx, x, y, outerR, innerR) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI / 4) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? outerR : innerR;
+    ctx.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+  }
+  ctx.closePath();
+}
+
+// Seeded random for reproducibility
+let seed = 42;
+function rand() { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; }
+
+// Generate irregular star distribution — clustered near gem, sparse at edges
+const stars = [
+  // Big bright ones near gem (hero sparkles)
+  { x: cx - 50, y: topTip - 30, outer: 32, inner: 6, op: 1.0 },
+  { x: bRightOuter + 40, y: topBody + 20, outer: 24, inner: 5, op: 0.9 },
+  { x: bLeftOuter - 20, y: botBody - 40, outer: 18, inner: 4, op: 0.85 },
+  // Medium ones scattered
+  { x: 780, y: 200, outer: 20, inner: 4, op: 0.7 },
+  { x: 170, y: 300, outer: 14, inner: 3, op: 0.6 },
+  { x: 850, y: 680, outer: 16, inner: 3, op: 0.55 },
+  { x: cx + 200, y: 600, outer: 12, inner: 2, op: 0.65 },
+  { x: 200, y: 750, outer: 10, inner: 2, op: 0.45 },
+  // Small ones far from gem
+  { x: 130, y: 160, outer: 8, inner: 1.5, op: 0.4 },
+  { x: 900, y: 150, outer: 6, inner: 1, op: 0.35 },
+  { x: 920, y: 450, outer: 7, inner: 1.5, op: 0.3 },
+  { x: 100, y: 550, outer: 5, inner: 1, op: 0.3 },
+  { x: cx - 10, y: 900, outer: 9, inner: 2, op: 0.4 },
+  { x: 700, y: 850, outer: 6, inner: 1, op: 0.25 },
+  { x: 350, y: 130, outer: 5, inner: 1, op: 0.3 },
 ];
 
-crystals.forEach(([x, y, length, width, angle, opacity]) => {
-  const glowR = length * 0.9;
+// Add some randomly placed tiny stars for natural feel
+for (let i = 0; i < 12; i++) {
+  const x = 80 + rand() * 860;
+  const y = 80 + rand() * 860;
+  const outer = 3 + rand() * 6;
+  const inner = 0.8 + rand() * 1.5;
+  const op = 0.15 + rand() * 0.35;
+  stars.push({ x, y, outer, inner, op });
+}
+
+stars.forEach(({ x, y, outer, inner, op }) => {
+  // Glow halo (bigger for bigger stars)
+  const glowR = outer * 2.5;
   const sg = ctx.createRadialGradient(x, y, 0, x, y, glowR);
-  sg.addColorStop(0, `rgba(255, 248, 200, ${opacity * 0.6})`);
-  sg.addColorStop(0.4, `rgba(255, 230, 150, ${opacity * 0.2})`);
-  sg.addColorStop(1, 'rgba(255, 230, 150, 0)');
+  sg.addColorStop(0, `rgba(255, 250, 210, ${op * 0.65})`);
+  sg.addColorStop(0.35, `rgba(255, 240, 170, ${op * 0.2})`);
+  sg.addColorStop(1, 'rgba(255, 240, 170, 0)');
   ctx.fillStyle = sg;
   ctx.fillRect(x - glowR, y - glowR, glowR * 2, glowR * 2);
 
-  drawCrystalPrism(ctx, x, y, length, width, angle);
-  const cg = ctx.createLinearGradient(
-    x + Math.cos(angle) * (-length/2), y + Math.sin(angle) * (-length/2),
-    x + Math.cos(angle) * (length/2), y + Math.sin(angle) * (length/2)
-  );
-  cg.addColorStop(0, `rgba(255,255,255,${opacity*0.4})`);
-  cg.addColorStop(0.3, `rgba(255,255,255,${opacity})`);
-  cg.addColorStop(0.5, `rgba(255,248,220,${opacity})`);
-  cg.addColorStop(0.7, `rgba(255,255,255,${opacity})`);
-  cg.addColorStop(1, `rgba(255,255,255,${opacity*0.4})`);
-  ctx.fillStyle = cg;
+  // Star shape
+  ctx.save();
+  ctx.globalAlpha = op;
+  drawStar4(ctx, x, y, outer, inner);
+  ctx.fillStyle = '#FFFFFF';
   ctx.fill();
-});
-
-// Tiny dots
-const dots = [
-  [370,280,3],[700,320,2],[430,770,2],[590,830,2],[190,430,2],[840,380,2],
-  [520,140,2],[740,600,2],[290,700,2],[150,310,1.5],[860,270,1.5],[620,130,1.5],
-];
-dots.forEach(([x, y, r]) => {
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = `rgba(255,255,255,${0.4 + Math.random() * 0.4})`; ctx.fill();
+  ctx.restore();
 });
 
 // === SAVE ===
