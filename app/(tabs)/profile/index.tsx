@@ -30,7 +30,6 @@ export default function ProfileScreen() {
             <Text style={styles.avatarText}>{profile?.name?.[0]?.toUpperCase() ?? '?'}</Text>
           </View>
           <Text style={styles.name}>{profile?.name ?? 'User'}</Text>
-          <Text style={styles.role}>{profile?.role ?? 'adult'}</Text>
         </View>
 
         {/* Goals Section */}
@@ -62,11 +61,6 @@ export default function ProfileScreen() {
         {/* Settings Section */}
         <Text style={styles.sectionTitle}>Settings</Text>
         <MenuCard
-          title="Switch Profile"
-          subtitle="Manage family profiles"
-          onPress={() => router.push('/(modals)/profile-switcher')}
-        />
-        <MenuCard
           title="Manage Aspects"
           subtitle="Work, Family, Self — customize your life dimensions"
           onPress={() => router.push('/(modals)/aspect-manager')}
@@ -89,7 +83,6 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: '#fff', fontSize: 28, fontWeight: '700' },
   name: { fontSize: 22, fontWeight: '700', marginTop: 10, color: '#111827' },
-  role: { fontSize: 14, color: '#6B7280', marginTop: 2 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: '#9CA3AF', marginTop: 24, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
   card: {
     backgroundColor: '#fff', borderRadius: 14, padding: 16,
