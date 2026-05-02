@@ -2,6 +2,7 @@ import 'react-native-reanimated';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAppStore, useProfileStore } from '@/stores';
 
 export default function RootLayout() {
@@ -38,5 +39,5 @@ export default function RootLayout() {
     );
   }
 
-  return <Slot />;
+  return <GestureHandlerRootView style={{ flex: 1 }}><Slot /></GestureHandlerRootView>;
 }

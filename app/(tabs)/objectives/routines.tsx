@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen } from '@/components/common/AppScreen';
+import { SwipeableRow } from '@/components/common/SwipeableRow';
 import { useCurrentProfile } from '@/hooks/useCurrentProfile';
 import { useTaskStore } from '@/stores';
 import { todayKey } from '@/utils/date';
@@ -29,32 +30,26 @@ export default function RoutinesScreen() {
       <Text style={s.title}>Daily Routines</Text>
       <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 40 }}>
         {recurring.map((r) => (
-          <View key={r.id} style={s.card}>
-            {editingId === r.id ? (
-              <View>
-                <TextInput style={s.input} value={editTitle} onChangeText={setEditTitle} autoFocus />
-                <View style={s.editActions}>
-                  <TouchableOpacity onPress={() => setEditingId(null)}><Text style={s.cancelText}>Cancel</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => { updateRecurringTask(r.id, { title: editTitle }); setEditingId(null); }} style={s.saveBtn}>
-                    <Text style={s.saveBtnText}>Save</Text>
-                  </TouchableOpacity>
+          <SwipeableRow key={r.id} onDelete={() => deleteRecurringTask(r.id)}>
+            <View style={s.card}>
+              {editingId === r.id ? (
+                <View>
+                  <TextInput style={s.input} value={editTitle} onChangeText={setEditTitle} autoFocus />
+                  <View style={s.editActions}>
+                    <TouchableOpacity onPress={() => setEditingId(null)}><Text style={s.cancelText}>Cancel</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => { updateRecurringTask(r.id, { title: editTitle }); setEditingId(null); }} style={s.saveBtn}>
+                      <Text style={s.saveBtnText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ) : (
-              <TouchableOpacity style={s.cardRow} onPress={() => { setEditingId(r.id); setEditTitle(r.title); }}>
-                <View style={{ flex: 1 }}>
+              ) : (
+                <TouchableOpacity onPress={() => { setEditingId(r.id); setEditTitle(r.title); }}>
                   <Text style={s.cardTitle}>{r.title}</Text>
-                  <Text style={s.cardStatus}>{r.pattern}{r.isPaused ? ' · paused' : ''}</Text>
-                </View>
-                <TouchableOpacity onPress={() => Alert.alert('Delete Routine', `Delete "${r.title}"?`, [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', style: 'destructive', onPress: () => deleteRecurringTask(r.id) },
-                ])}>
-                  <Text style={s.deleteText}>Delete</Text>
+                  <Text style={s.cardStatus}>{r.pattern} · tap to edit · swipe to delete</Text>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            )}
-          </View>
+              )}
+            </View>
+          </SwipeableRow>
         ))}
         {!recurring.length && !adding ? <Text style={{ color: '#6B7280' }}>No routines yet. Add recurring tasks that appear every day.</Text> : null}
         {adding ? (
