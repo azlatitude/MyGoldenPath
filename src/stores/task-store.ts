@@ -13,6 +13,7 @@ interface TaskStore {
   recurringTasks: RecurringTask[];
   addTask: (input: Omit<DailyTask, 'id' | 'status' | 'isUnlinked' | 'source' | 'createdAt' | 'updatedAt'> & { source?: DailyTask['source'] }) => string;
   toggleTaskComplete: (taskId: string, completed: boolean) => void;
+  carryOverUnfinishedTasks: (profileId: string, toDate: string) => void;
   generateRecurringTasksForDate: (profileId: string, date: string) => void;
   addRecurringTask: (input: Omit<RecurringTask, 'id' | 'isPaused' | 'isArchived' | 'createdAt' | 'updatedAt'>) => string;
   updateRecurringTask: (id: string, patch: Partial<Pick<RecurringTask, 'title' | 'pattern'>>) => void;
@@ -64,6 +65,19 @@ export const useTaskStore = create<TaskStore>()(
           )
         }));
         if (completed) useGemStore.getState().rollDropForTaskCompletion(taskId);
+      },
+      carryOverUnfinishedTasks: (profileId, toDate) => {
+        const now = nowIso();
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.profileId === profileId &&
+            t.status === 'pending' &&
+            t.source === 'manual' &&
+            t.dueDate < toDate
+              ? { ...t, dueDate: toDate, updatedAt: now }
+              : t
+          )
+        }));
       },
       generateRecurringTasksForDate: (profileId, date) => {
         const asDate = new Date(`${date}T00:00:00`);

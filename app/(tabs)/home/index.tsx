@@ -16,13 +16,16 @@ export default function HomeScreen() {
   const tasks = useTodayTasks();
   const toggleTaskComplete = useTaskStore((s) => s.toggleTaskComplete);
   const generateRecurringTasksForDate = useTaskStore((s) => s.generateRecurringTasksForDate);
+  const carryOverUnfinishedTasks = useTaskStore((s) => s.carryOverUnfinishedTasks);
   const consumeNextDropForAnimation = useGemStore((s) => s.consumeNextDropForAnimation);
   const [drop, setDrop] = useState<ReturnType<typeof consumeNextDropForAnimation>>();
 
-  // Auto-generate recurring tasks for today on mount
+  // Auto-carry-over unfinished tasks + generate recurring tasks on mount
   useEffect(() => {
     if (profile?.id) {
-      generateRecurringTasksForDate(profile.id, todayKey());
+      const today = todayKey();
+      carryOverUnfinishedTasks(profile.id, today);
+      generateRecurringTasksForDate(profile.id, today);
     }
   }, [profile?.id]);
 

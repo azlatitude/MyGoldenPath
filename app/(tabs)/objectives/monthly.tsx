@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, TextInput, ActionSheetIOS, Platform, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen } from '@/components/common/AppScreen';
 import { SuggestionChips } from '@/components/common/SuggestionChips';
@@ -10,6 +10,21 @@ import { usePlanningStore } from '@/stores';
 import { monthKeyFromDate } from '@/utils/date';
 import type { MonthlyObjective } from '@/models';
 
+function showMoveSheet(aspectNames: string[], onSelect: (index: number) => void) {
+  const options = [...aspectNames, 'Cancel'];
+  if (Platform.OS === 'ios') {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options, cancelButtonIndex: options.length - 1, title: 'Move to aspect' },
+      (idx) => { if (idx < aspectNames.length) onSelect(idx); }
+    );
+  } else {
+    Alert.alert('Move to aspect', undefined, [
+      ...aspectNames.map((name, i) => ({ text: name, onPress: () => onSelect(i) })),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  }
+}
+
 function ObjectiveCard({ obj, aspects, onUpdate, onDelete, onMove }: {
   obj: MonthlyObjective;
   aspects: { id: string; name: string; colorHex: string }[];
@@ -19,8 +34,12 @@ function ObjectiveCard({ obj, aspects, onUpdate, onDelete, onMove }: {
 }) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(obj.title);
-  const [showMove, setShowMove] = useState(false);
   const otherAspects = aspects.filter((a) => a.id !== obj.aspectId);
+
+  const handleLongPress = () => {
+    if (otherAspects.length === 0) return;
+    showMoveSheet(otherAspects.map((a) => a.name), (idx) => onMove(obj.id, otherAspects[idx].id));
+  };
 
   return (
     <SwipeableRow onDelete={() => onDelete(obj.id)}>
@@ -36,29 +55,14 @@ function ObjectiveCard({ obj, aspects, onUpdate, onDelete, onMove }: {
             </View>
           </View>
         ) : (
-          <>
-            <TouchableOpacity onPress={() => { setEditTitle(obj.title); setEditing(true); }} activeOpacity={0.7}>
-              <Text style={s.cardTitle}>{obj.title}</Text>
-              <Text style={s.cardHint}>{obj.status} · tap to edit · swipe to delete</Text>
-            </TouchableOpacity>
-            {otherAspects.length > 0 ? (
-              <>
-                <TouchableOpacity onPress={() => setShowMove(!showMove)} style={s.moveToggle}>
-                  <Text style={s.moveToggleText}>{showMove ? 'Cancel move' : 'Move to...'}</Text>
-                </TouchableOpacity>
-                {showMove ? (
-                  <View style={s.moveSection}>
-                    {otherAspects.map((a) => (
-                      <TouchableOpacity key={a.id} style={s.moveChip} onPress={() => { onMove(obj.id, a.id); setShowMove(false); }}>
-                        <View style={[s.moveDot, { backgroundColor: a.colorHex }]} />
-                        <Text style={s.moveText}>{a.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : null}
-              </>
-            ) : null}
-          </>
+          <TouchableOpacity
+            onPress={() => { setEditTitle(obj.title); setEditing(true); }}
+            onLongPress={handleLongPress}
+            activeOpacity={0.7}
+          >
+            <Text style={s.cardTitle}>{obj.title}</Text>
+            <Text style={s.cardHint}>{obj.status} · tap to edit · long-press to move</Text>
+          </TouchableOpacity>
         )}
       </View>
     </SwipeableRow>
