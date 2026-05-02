@@ -1,26 +1,42 @@
 import 'react-native-reanimated';
-import { useEffect } from 'react';
-import { Stack, useRouter, useRootNavigationState } from 'expo-router';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { useAppStore, useProfileStore } from '@/stores';
 
 export default function RootLayout() {
   const onboardingCompleted = useAppStore((s) => s.onboardingCompleted);
   const activeProfileId = useProfileStore((s) => s.activeProfileId);
   const router = useRouter();
-  const navigationState = useRootNavigationState();
+  const segments = useSegments();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!navigationState?.key) return;
-    if (!onboardingCompleted || !activeProfileId) {
-      router.replace('/(onboarding)/welcome');
-    }
-  }, [navigationState?.key, onboardingCompleted, activeProfileId]);
+    // Small delay to let navigation mount
+    const timer = setTimeout(() => setReady(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
-    </Stack>
-  );
+  useEffect(() => {
+    if (!ready) return;
+
+    const inOnboarding = segments[0] === '(onboarding)';
+    const needsOnboarding = !onboardingCompleted || !activeProfileId;
+
+    if (needsOnboarding && !inOnboarding) {
+      router.replace('/(onboarding)/welcome');
+    } else if (!needsOnboarding && inOnboarding) {
+      router.replace('/(tabs)/home');
+    }
+  }, [ready, onboardingCompleted, activeProfileId, segments]);
+
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F8FC' }}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
+  return <Slot />;
 }
