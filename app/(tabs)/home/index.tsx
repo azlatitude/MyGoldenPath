@@ -55,7 +55,12 @@ export default function HomeScreen() {
       ) : null}
 
       <Text style={{ fontSize: 28, fontWeight: '800' }}>Today</Text>
-      <Text style={{ color: '#6B7280', marginBottom: 8 }}>{profile?.name ?? 'Profile'}</Text>
+      <View style={s.headerRow}>
+        <Text style={{ color: '#6B7280', flex: 1 }}>{profile?.name ?? 'Profile'}</Text>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/home/calendar')} style={s.calendarBtn}>
+          <Text style={s.calendarText}>📅 Calendar</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Monthly objectives reminder */}
       {monthlyObjectives.length > 0 ? (
@@ -100,6 +105,9 @@ const s = StyleSheet.create({
   bannerPlan: { backgroundColor: '#EEF2FF', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#C7D2FE' },
   bannerRetro: { backgroundColor: '#FEF3C7', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#FCD34D' },
   bannerText: { fontSize: 14, fontWeight: '600', color: '#1E3A8A', textAlign: 'center' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  calendarBtn: { backgroundColor: '#EEF2FF', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  calendarText: { fontSize: 13, color: '#2563EB', fontWeight: '600' },
   objectivesReminder: { backgroundColor: '#F0FDF4', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#BBF7D0' },
   reminderLabel: { fontSize: 12, fontWeight: '600', color: '#166534', marginBottom: 4 },
   reminderItem: { fontSize: 13, color: '#15803D' },
