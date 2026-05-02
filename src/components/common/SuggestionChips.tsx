@@ -1,4 +1,4 @@
-import { ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface SuggestionChipsProps {
   suggestions: string[];
@@ -9,24 +9,20 @@ export function SuggestionChips({ suggestions, onSelect }: SuggestionChipsProps)
   return (
     <>
       <Text style={styles.label}>Tap for inspiration:</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.container}
-      >
+      <View style={styles.container}>
         {suggestions.map((s) => (
           <TouchableOpacity key={s} style={styles.chip} onPress={() => onSelect(s)}>
             <Text style={styles.chipText}>{s}</Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   label: { color: '#9CA3AF', fontSize: 13, marginTop: 12, marginBottom: 6 },
-  container: { gap: 8, paddingBottom: 8 },
+  container: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 8 },
   chip: {
     backgroundColor: '#EEF2FF',
     borderRadius: 20,

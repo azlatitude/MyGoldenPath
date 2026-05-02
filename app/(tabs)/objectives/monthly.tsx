@@ -10,24 +10,12 @@ import { monthKeyFromDate } from '@/utils/date';
 
 export default function MonthlyObjectivesScreen() {
   const profile = useCurrentProfile();
+  const aspects = usePlanningStore((s) => s.aspects).filter((a) => a.profileId === profile?.id && !a.isArchived);
   const monthly = usePlanningStore((s) => s.monthlyObjectives);
-  const aspects = usePlanningStore((s) => s.aspects);
   const createMonthlyObjective = usePlanningStore((s) => s.createMonthlyObjective);
   const monthKey = monthKeyFromDate();
-  const list = useMemo(() => monthly.filter((m) => m.profileId === profile?.id && m.monthKey === monthKey), [monthly, profile?.id, monthKey]);
-  const [adding, setAdding] = useState(false);
+  const [addingForAspect, setAddingForAspect] = useState<string | null>(null);
   const [title, setTitle] = useState('');
-
-  const defaultAspect = aspects.find((a) => a.profileId === profile?.id);
-  const aspectName = defaultAspect?.name?.toLowerCase() ?? 'self';
-  const suggestions = MONTHLY_SUGGESTIONS[aspectName] ?? MONTHLY_SUGGESTIONS.self;
-
-  const handleAdd = () => {
-    if (!profile || !defaultAspect || title.trim().length < 3) return;
-    createMonthlyObjective({ profileId: profile.id, aspectId: defaultAspect.id, title: title.trim(), monthKey });
-    setTitle('');
-    setAdding(false);
-  };
 
   return (
     <AppScreen>
@@ -35,31 +23,62 @@ export default function MonthlyObjectivesScreen() {
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Text style={s.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={s.title}>Monthly Objectives</Text>
+        <Text style={s.screenTitle}>Monthly Objectives</Text>
       </View>
       <Text style={s.monthLabel}>{monthKey}</Text>
-      <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 40 }}>
-        {list.map((item) => (
-          <View key={item.id} style={s.card}>
-            <Text style={s.cardTitle}>{item.title}</Text>
-            <Text style={s.cardStatus}>{item.status} · {item.progressCurrent}{item.target ? `/${item.target.value} ${item.target.unit}` : ''}</Text>
-          </View>
-        ))}
-        {!list.length && !adding ? <Text style={{ color: '#6B7280' }}>No objectives for this month. Tap + to add.</Text> : null}
-        {adding ? (
-          <View style={s.addForm}>
-            <TextInput style={s.input} value={title} onChangeText={setTitle} placeholder="What will you do this month?" autoFocus />
-            <SuggestionChips suggestions={suggestions} onSelect={setTitle} />
-            <View style={s.addActions}>
-              <TouchableOpacity onPress={() => setAdding(false)}><Text style={s.cancelText}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity onPress={handleAdd} style={s.saveBtn}><Text style={s.saveBtnText}>Save</Text></TouchableOpacity>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        {aspects.map((aspect) => {
+          const objectives = monthly.filter((m) => m.profileId === profile?.id && m.aspectId === aspect.id && m.monthKey === monthKey);
+          const aspectKey = aspect.name.toLowerCase();
+          const suggestions = MONTHLY_SUGGESTIONS[aspectKey] ?? MONTHLY_SUGGESTIONS.self;
+          const isAdding = addingForAspect === aspect.id;
+
+          return (
+            <View key={aspect.id} style={s.aspectSection}>
+              <View style={[s.aspectHeader, { borderLeftColor: aspect.colorHex }]}>
+                <Text style={[s.aspectName, { color: aspect.colorHex }]}>{aspect.name}</Text>
+                <Text style={s.aspectCount}>{objectives.length}/3</Text>
+              </View>
+
+              {objectives.map((obj) => (
+                <View key={obj.id} style={s.card}>
+                  <Text style={s.cardTitle}>{obj.title}</Text>
+                  <Text style={s.cardStatus}>{obj.status} · {obj.progressCurrent}{obj.target ? `/${obj.target.value} ${obj.target.unit}` : ''}</Text>
+                </View>
+              ))}
+
+              {!objectives.length && !isAdding ? (
+                <Text style={s.emptyHint}>No {aspect.name.toLowerCase()} objectives this month</Text>
+              ) : null}
+
+              {isAdding ? (
+                <View style={s.addForm}>
+                  <TextInput style={s.input} value={title} onChangeText={setTitle} placeholder={`${aspect.name} goal for this month...`} autoFocus />
+                  <SuggestionChips suggestions={suggestions} onSelect={setTitle} />
+                  <View style={s.addActions}>
+                    <TouchableOpacity onPress={() => { setAddingForAspect(null); setTitle(''); }}>
+                      <Text style={s.cancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (!profile || title.trim().length < 3) return;
+                        createMonthlyObjective({ profileId: profile.id, aspectId: aspect.id, title: title.trim(), monthKey });
+                        setTitle(''); setAddingForAspect(null);
+                      }}
+                      style={s.saveBtn}
+                    >
+                      <Text style={s.saveBtnText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : objectives.length < 3 ? (
+                <TouchableOpacity onPress={() => { setAddingForAspect(aspect.id); setTitle(''); }} style={s.addBtn}>
+                  <Text style={s.addBtnText}>+ Add {aspect.name} objective</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-          </View>
-        ) : (
-          <TouchableOpacity onPress={() => setAdding(true)} style={s.addBtn}>
-            <Text style={s.addBtnText}>+ Add Monthly Objective</Text>
-          </TouchableOpacity>
-        )}
+          );
+        })}
       </ScrollView>
     </AppScreen>
   );
@@ -69,9 +88,14 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   backBtn: { paddingRight: 12 },
   backText: { fontSize: 16, color: '#2563EB' },
-  title: { fontSize: 24, fontWeight: '800', flex: 1 },
+  screenTitle: { fontSize: 24, fontWeight: '800', flex: 1 },
   monthLabel: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+  aspectSection: { marginBottom: 20 },
+  aspectHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderLeftWidth: 4, paddingLeft: 10, marginBottom: 8 },
+  aspectName: { fontSize: 16, fontWeight: '700' },
+  aspectCount: { fontSize: 13, color: '#9CA3AF' },
+  emptyHint: { color: '#9CA3AF', fontSize: 13, fontStyle: 'italic', marginBottom: 6, paddingLeft: 14 },
+  card: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 6 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
   cardStatus: { fontSize: 13, color: '#6B7280', marginTop: 4 },
   addForm: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#C7D2FE' },
@@ -80,6 +104,6 @@ const s = StyleSheet.create({
   cancelText: { color: '#6B7280', fontSize: 15 },
   saveBtn: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 8 },
   saveBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  addBtn: { borderWidth: 1, borderColor: '#C7D2FE', borderRadius: 14, padding: 16, alignItems: 'center', borderStyle: 'dashed' },
-  addBtnText: { color: '#2563EB', fontWeight: '600', fontSize: 15 },
+  addBtn: { borderWidth: 1, borderColor: '#C7D2FE', borderRadius: 14, padding: 14, alignItems: 'center', borderStyle: 'dashed' },
+  addBtnText: { color: '#2563EB', fontWeight: '600', fontSize: 14 },
 });

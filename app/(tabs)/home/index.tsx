@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Text, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { AppScreen } from '@/components/common/AppScreen';
@@ -8,25 +8,65 @@ import { QuickAddTaskFab } from '@/components/tasks/QuickAddTaskFab';
 import { PrizeDropOverlay } from '@/components/animation/PrizeDropOverlay';
 import { useCurrentProfile } from '@/hooks/useCurrentProfile';
 import { useTodayTasks } from '@/hooks/useTodayTasks';
-import { useGemStore, useTaskStore } from '@/stores';
+import { useGemStore, useTaskStore, usePlanningStore } from '@/stores';
+import { todayKey, monthKeyFromDate, isLastFiveDaysOfMonth, isLastTwoDaysOfMonth } from '@/utils/date';
 
 export default function HomeScreen() {
   const profile = useCurrentProfile();
   const tasks = useTodayTasks();
   const toggleTaskComplete = useTaskStore((s) => s.toggleTaskComplete);
+  const generateRecurringTasksForDate = useTaskStore((s) => s.generateRecurringTasksForDate);
   const consumeNextDropForAnimation = useGemStore((s) => s.consumeNextDropForAnimation);
   const [drop, setDrop] = useState<ReturnType<typeof consumeNextDropForAnimation>>();
+
+  // Auto-generate recurring tasks for today on mount
+  useEffect(() => {
+    if (profile?.id) {
+      generateRecurringTasksForDate(profile.id, todayKey());
+    }
+  }, [profile?.id]);
 
   const pending = useMemo(() => tasks.filter((t) => t.status !== 'completed'), [tasks]);
   const completed = useMemo(() => tasks.filter((t) => t.status === 'completed'), [tasks]);
 
+  // Monthly objective context
+  const monthlyObjectives = usePlanningStore((s) => s.monthlyObjectives)
+    .filter((m) => m.profileId === profile?.id && m.monthKey === monthKeyFromDate() && m.status === 'active');
+
+  // Banner flags
+  const showPlanBanner = isLastFiveDaysOfMonth() && !isLastTwoDaysOfMonth();
+  const showRetroBanner = isLastTwoDaysOfMonth();
+
   return (
     <AppScreen>
-      <Text style={{ fontSize: 28, fontWeight: '800' }}>Home</Text>
-      <Text style={{ color: '#6B7280', marginBottom: 12 }}>{profile?.name ?? 'Profile'}</Text>
-      <View style={{ gap: 12 }}>
+      {/* Banners */}
+      {showPlanBanner ? (
+        <TouchableOpacity style={s.bannerPlan} onPress={() => router.push('/(tabs)/objectives/monthly')}>
+          <Text style={s.bannerText}>Plan next month's objectives →</Text>
+        </TouchableOpacity>
+      ) : null}
+      {showRetroBanner ? (
+        <TouchableOpacity style={s.bannerRetro} onPress={() => router.push('/(tabs)/review')}>
+          <Text style={s.bannerText}>Time for your monthly review! →</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      <Text style={{ fontSize: 28, fontWeight: '800' }}>Today</Text>
+      <Text style={{ color: '#6B7280', marginBottom: 8 }}>{profile?.name ?? 'Profile'}</Text>
+
+      {/* Monthly objectives reminder */}
+      {monthlyObjectives.length > 0 ? (
+        <View style={s.objectivesReminder}>
+          <Text style={s.reminderLabel}>This month's focus:</Text>
+          {monthlyObjectives.map((m) => (
+            <Text key={m.id} style={s.reminderItem}>• {m.title}</Text>
+          ))}
+        </View>
+      ) : null}
+
+      <View style={{ gap: 12, flex: 1 }}>
         <TaskSection
-          title="Today"
+          title="To Do"
           tasks={pending}
           onToggle={(id, done) => {
             toggleTaskComplete(id, done);
@@ -34,7 +74,9 @@ export default function HomeScreen() {
             if (done) setDrop(consumeNextDropForAnimation());
           }}
         />
-        <TaskSection title="Completed" tasks={completed} onToggle={toggleTaskComplete} />
+        {completed.length > 0 ? (
+          <TaskSection title="Done" tasks={completed} onToggle={toggleTaskComplete} />
+        ) : null}
       </View>
       <QuickAddTaskFab onPress={() => router.push('/(tabs)/home/add-task')} />
       {drop ? (
@@ -50,3 +92,12 @@ export default function HomeScreen() {
     </AppScreen>
   );
 }
+
+const s = StyleSheet.create({
+  bannerPlan: { backgroundColor: '#EEF2FF', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#C7D2FE' },
+  bannerRetro: { backgroundColor: '#FEF3C7', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#FCD34D' },
+  bannerText: { fontSize: 14, fontWeight: '600', color: '#1E3A8A', textAlign: 'center' },
+  objectivesReminder: { backgroundColor: '#F0FDF4', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#BBF7D0' },
+  reminderLabel: { fontSize: 12, fontWeight: '600', color: '#166534', marginBottom: 4 },
+  reminderItem: { fontSize: 13, color: '#15803D' },
+});
