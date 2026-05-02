@@ -63,12 +63,12 @@ export default function ProfileScreen() {
         <MenuCard
           title="Manage Aspects"
           subtitle="Work, Family, Self — customize your life dimensions"
-          onPress={() => router.push('/(modals)/aspect-manager')}
+          onPress={() => router.push('/(tabs)/profile/aspect-manager')}
         />
         <MenuCard
           title="App Settings"
           subtitle="Notifications, preferences"
-          onPress={() => router.push('/(modals)/settings')}
+          onPress={() => router.push('/(tabs)/profile/settings')}
         />
       </ScrollView>
     </AppScreen>

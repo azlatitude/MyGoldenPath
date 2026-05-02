@@ -15,6 +15,8 @@ interface TaskStore {
   toggleTaskComplete: (taskId: string, completed: boolean) => void;
   generateRecurringTasksForDate: (profileId: string, date: string) => void;
   addRecurringTask: (input: Omit<RecurringTask, 'id' | 'isPaused' | 'isArchived' | 'createdAt' | 'updatedAt'>) => string;
+  updateRecurringTask: (id: string, patch: Partial<Pick<RecurringTask, 'title' | 'pattern'>>) => void;
+  deleteRecurringTask: (id: string) => void;
   pauseRecurringTask: (recurringTaskId: string, paused: boolean) => void;
 }
 
@@ -93,6 +95,12 @@ export const useTaskStore = create<TaskStore>()(
         set((state) => ({ recurringTasks: [...state.recurringTasks, { ...input, id, isPaused: false, isArchived: false, createdAt: now, updatedAt: now }] }));
         return id;
       },
+      updateRecurringTask: (id, patch) => set((state) => ({
+        recurringTasks: state.recurringTasks.map((r) => (r.id === id ? { ...r, ...patch, updatedAt: nowIso() } : r))
+      })),
+      deleteRecurringTask: (id) => set((state) => ({
+        recurringTasks: state.recurringTasks.filter((r) => r.id !== id)
+      })),
       pauseRecurringTask: (recurringTaskId, paused) =>
         set((state) => ({ recurringTasks: state.recurringTasks.map((r) => (r.id === recurringTaskId ? { ...r, isPaused: paused, updatedAt: nowIso() } : r)) }))
     }),
