@@ -17,7 +17,11 @@ interface PlanningStore {
   archiveAspect: (aspectId: string) => void;
   createCategory: (input: Pick<Category, 'profileId' | 'aspectId' | 'name'>) => string;
   createAnnualObjective: (input: Omit<AnnualObjective, 'id' | 'status' | 'sortOrder' | 'createdAt' | 'updatedAt'>) => string;
+  updateAnnualObjective: (id: string, patch: Partial<Pick<AnnualObjective, 'title' | 'aspectId'>>) => void;
+  deleteAnnualObjective: (id: string) => void;
   createMonthlyObjective: (input: Omit<MonthlyObjective, 'id' | 'status' | 'sortOrder' | 'progressCurrent' | 'createdAt' | 'updatedAt' | 'monthKey'> & { monthKey?: string }) => string;
+  updateMonthlyObjective: (id: string, patch: Partial<Pick<MonthlyObjective, 'title' | 'aspectId'>>) => void;
+  deleteMonthlyObjective: (id: string) => void;
   completeMonthlyObjective: (monthlyObjectiveId: string) => void;
 }
 
@@ -53,6 +57,12 @@ export const usePlanningStore = create<PlanningStore>()(
         }));
         return id;
       },
+      updateAnnualObjective: (id, patch) => set((state) => ({
+        annualObjectives: state.annualObjectives.map((a) => (a.id === id ? { ...a, ...patch, updatedAt: nowIso() } : a))
+      })),
+      deleteAnnualObjective: (id) => set((state) => ({
+        annualObjectives: state.annualObjectives.filter((a) => a.id !== id)
+      })),
       createMonthlyObjective: (input) => {
         const id = createId();
         const now = nowIso();
@@ -73,6 +83,12 @@ export const usePlanningStore = create<PlanningStore>()(
         }));
         return id;
       },
+      updateMonthlyObjective: (id, patch) => set((state) => ({
+        monthlyObjectives: state.monthlyObjectives.map((m) => (m.id === id ? { ...m, ...patch, updatedAt: nowIso() } : m))
+      })),
+      deleteMonthlyObjective: (id) => set((state) => ({
+        monthlyObjectives: state.monthlyObjectives.filter((m) => m.id !== id)
+      })),
       completeMonthlyObjective: (monthlyObjectiveId) => {
         const monthly = get().monthlyObjectives.find((m) => m.id === monthlyObjectiveId);
         if (!monthly || monthly.status === 'completed') return;

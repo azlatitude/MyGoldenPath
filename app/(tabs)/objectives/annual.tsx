@@ -1,20 +1,81 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, View, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { AppScreen } from '@/components/common/AppScreen';
 import { SuggestionChips } from '@/components/common/SuggestionChips';
 import { ANNUAL_SUGGESTIONS } from '@/constants/objective-suggestions';
 import { useCurrentProfile } from '@/hooks/useCurrentProfile';
 import { usePlanningStore } from '@/stores';
+import type { AnnualObjective } from '@/models';
+
+function ObjectiveCard({ obj, aspects, onUpdate, onDelete, onMove }: {
+  obj: AnnualObjective;
+  aspects: { id: string; name: string; colorHex: string }[];
+  onUpdate: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
+  onMove: (id: string, newAspectId: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(obj.title);
+  const [showMove, setShowMove] = useState(false);
+  const otherAspects = aspects.filter((a) => a.id !== obj.aspectId);
+
+  return (
+    <View style={s.card}>
+      {editing ? (
+        <View>
+          <TextInput style={s.editInput} value={editTitle} onChangeText={setEditTitle} autoFocus />
+          <View style={s.editActions}>
+            <TouchableOpacity onPress={() => setEditing(false)}><Text style={s.cancelText}>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => { onUpdate(obj.id, editTitle); setEditing(false); }} style={s.saveBtn}>
+              <Text style={s.saveBtnText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <>
+          <Text style={s.cardTitle}>{obj.title}</Text>
+          <Text style={s.cardStatus}>{obj.status}</Text>
+          <View style={s.cardActions}>
+            <TouchableOpacity onPress={() => { setEditTitle(obj.title); setEditing(true); }}>
+              <Text style={s.actionText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowMove(!showMove)}>
+              <Text style={s.actionText}>Move</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Delete', `Delete "${obj.title}"?`, [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: () => onDelete(obj.id) },
+            ])}>
+              <Text style={[s.actionText, { color: '#EF4444' }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+          {showMove && otherAspects.length > 0 ? (
+            <View style={s.moveSection}>
+              <Text style={s.moveLabel}>Move to:</Text>
+              {otherAspects.map((a) => (
+                <TouchableOpacity key={a.id} style={s.moveChip} onPress={() => { onMove(obj.id, a.id); setShowMove(false); }}>
+                  <View style={[s.moveDot, { backgroundColor: a.colorHex }]} />
+                  <Text style={s.moveText}>{a.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
+        </>
+      )}
+    </View>
+  );
+}
 
 export default function AnnualObjectivesScreen() {
   const profile = useCurrentProfile();
   const aspects = usePlanningStore((s) => s.aspects).filter((a) => a.profileId === profile?.id && !a.isArchived);
   const annual = usePlanningStore((s) => s.annualObjectives);
   const createAnnualObjective = usePlanningStore((s) => s.createAnnualObjective);
+  const updateAnnualObjective = usePlanningStore((s) => s.updateAnnualObjective);
+  const deleteAnnualObjective = usePlanningStore((s) => s.deleteAnnualObjective);
   const [addingForAspect, setAddingForAspect] = useState<string | null>(null);
   const [title, setTitle] = useState('');
-
   const year = new Date().getFullYear();
 
   return (
@@ -40,28 +101,29 @@ export default function AnnualObjectivesScreen() {
               </View>
 
               {objectives.map((obj) => (
-                <View key={obj.id} style={s.card}>
-                  <Text style={s.cardTitle}>{obj.title}</Text>
-                  <Text style={s.cardStatus}>{obj.status}</Text>
-                </View>
+                <ObjectiveCard
+                  key={obj.id}
+                  obj={obj}
+                  aspects={aspects}
+                  onUpdate={(id, t) => updateAnnualObjective(id, { title: t })}
+                  onDelete={deleteAnnualObjective}
+                  onMove={(id, newAspectId) => updateAnnualObjective(id, { aspectId: newAspectId })}
+                />
               ))}
 
               {isAdding ? (
                 <View style={s.addForm}>
                   <TextInput style={s.input} value={title} onChangeText={setTitle} placeholder={`${aspect.name} goal for ${year}...`} autoFocus />
                   <SuggestionChips suggestions={suggestions} onSelect={setTitle} />
-                  <View style={s.addActions}>
+                  <View style={s.editActions}>
                     <TouchableOpacity onPress={() => { setAddingForAspect(null); setTitle(''); }}>
                       <Text style={s.cancelText}>Cancel</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (!profile || title.trim().length < 3) return;
-                        createAnnualObjective({ profileId: profile.id, aspectId: aspect.id, year, title: title.trim() });
-                        setTitle(''); setAddingForAspect(null);
-                      }}
-                      style={s.saveBtn}
-                    >
+                    <TouchableOpacity onPress={() => {
+                      if (!profile || title.trim().length < 3) return;
+                      createAnnualObjective({ profileId: profile.id, aspectId: aspect.id, year, title: title.trim() });
+                      setTitle(''); setAddingForAspect(null);
+                    }} style={s.saveBtn}>
                       <Text style={s.saveBtnText}>Save</Text>
                     </TouchableOpacity>
                   </View>
@@ -74,7 +136,6 @@ export default function AnnualObjectivesScreen() {
             </View>
           );
         })}
-        {!aspects.length ? <Text style={{ color: '#6B7280' }}>No aspects configured.</Text> : null}
       </ScrollView>
     </AppScreen>
   );
@@ -91,13 +152,21 @@ const s = StyleSheet.create({
   aspectCount: { fontSize: 13, color: '#9CA3AF' },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 6 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
-  cardStatus: { fontSize: 13, color: '#6B7280', marginTop: 4 },
-  addForm: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#C7D2FE' },
-  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 10, padding: 12, fontSize: 15 },
-  addActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  cardStatus: { fontSize: 13, color: '#6B7280', marginTop: 2 },
+  cardActions: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  actionText: { fontSize: 13, color: '#2563EB', fontWeight: '600' },
+  editInput: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 10, padding: 10, fontSize: 15 },
+  editActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   cancelText: { color: '#6B7280', fontSize: 15 },
   saveBtn: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 8 },
   saveBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  moveSection: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  moveLabel: { fontSize: 12, color: '#6B7280', width: '100%' },
+  moveChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#E5E7EB' },
+  moveDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  moveText: { fontSize: 13, color: '#374151' },
+  addForm: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#C7D2FE' },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 10, padding: 12, fontSize: 15 },
   addBtn: { borderWidth: 1, borderColor: '#C7D2FE', borderRadius: 14, padding: 14, alignItems: 'center', borderStyle: 'dashed' },
   addBtnText: { color: '#2563EB', fontWeight: '600', fontSize: 14 },
 });
